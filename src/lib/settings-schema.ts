@@ -199,7 +199,7 @@ export const DEFAULT_SETTINGS: StoreSettings = {
       { id: "story", type: "story", enabled: true, heading: "Why archaic", text: "Before electric light, a candle was how a house kept time. We pour ours the old way: soy wax, cotton wicks, oils blended by hand, and a label written for the person who will light it.", image: null, ctaLabel: "Read our story", ctaHref: "/pages/about" },
       { id: "membership", type: "membership", enabled: true, heading: "", text: "" },
       { id: "reviews", type: "reviews", enabled: true, heading: "Notes from our customers" },
-      { id: "news", type: "newsletter", enabled: true, heading: "Letters from the workshop", text: "New scents, restocks and the occasional quiet offer. No more than twice a month." },
+      { id: "news", type: "newsletter", enabled: false, heading: "Letters from the workshop", text: "New scents, restocks and the occasional quiet offer. No more than twice a month." },
     ],
   },
   footer: {

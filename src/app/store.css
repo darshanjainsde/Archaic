@@ -16,3 +16,6 @@
 .img-zoom { transition: transform .8s cubic-bezier(.2,.7,.2,1); }
 .group:hover .img-zoom { transform: scale(1.04); }
 @media (prefers-reduced-motion: reduce) { .card-lift, .img-zoom { transition: none; } .group:hover .card-lift, .group:hover .img-zoom { transform: none; } }
+
+/* Discount text on paper surfaces: darken the sale colour towards the paper ink so it stays readable (WCAG AA). */
+.card-label .text-sale, .label-panel .text-sale, .bg-paper .text-sale { color: color-mix(in srgb, var(--sale) 40%, var(--paper-ink)); }

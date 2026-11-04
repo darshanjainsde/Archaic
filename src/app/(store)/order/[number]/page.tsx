@@ -21,7 +21,7 @@ export default async function OrderThanks({ params }: { params: Promise<{ number
   const s = await getSettings();
   const a = order.shippingAddress as ShippingAddress;
   return (
-    <main className="container-x py-12 md:py-20">
+    <div className="container-x py-12 md:py-20">
       <ClearCart />
       <div className="grid gap-10 lg:grid-cols-[1fr_420px]">
         <div className="space-y-6">
@@ -57,6 +57,6 @@ export default async function OrderThanks({ params }: { params: Promise<{ number
           <p className="mt-4 text-[15px]">Delivering to {a.name}, {a.city} {a.pincode}</p>
         </aside>
       </div>
-    </main>
+    </div>
   );
 }

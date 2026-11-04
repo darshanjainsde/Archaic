@@ -40,7 +40,7 @@ export default async function CashfreeReturn({ searchParams }: { searchParams: P
 
   const s = await getSettings();
   return (
-    <main className="container-x py-16 md:py-24">
+    <div className="container-x py-16 md:py-24">
       <div className="max-w-2xl space-y-5">
         <h1 className="text-5xl md:text-6xl">Payment not completed</h1>
         <p className="text-lg">We did not receive the payment for order <b className="tabular-nums">{order.number}</b>. Nothing has been charged — or if money left your account, it will be confirmed here automatically within a few minutes, or refunded by your bank.</p>
@@ -49,6 +49,6 @@ export default async function CashfreeReturn({ searchParams }: { searchParams: P
           <Link href={`/account/orders/${order.number}`} className="btn btn-ghost">View order</Link>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

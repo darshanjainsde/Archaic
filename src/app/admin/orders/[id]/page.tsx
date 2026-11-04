@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/utils";
+import { toLocalInput } from "@/lib/form-data";
 import { STATUS_LABEL } from "@/lib/orders";
 import { ADMIN_TRANSITIONS } from "@/lib/order-transitions";
 import type { SelectionSnapshot, ShippingAddress } from "@/lib/types";
@@ -117,7 +118,7 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
               allowed={ADMIN_TRANSITIONS[o.status].filter((s) => s !== "REFUNDED" || o.paymentStatus === "PAID")}
               paid={o.paymentStatus === "PAID"}
               tracking={{ courier: o.courier ?? "", trackingNumber: o.trackingNumber ?? "", trackingUrl: o.trackingUrl ?? "" }}
-              eta={o.estimatedDelivery ? o.estimatedDelivery.toISOString().slice(0, 10) : ""}
+              eta={toLocalInput(o.estimatedDelivery).slice(0, 10)}
             />
           </Panel>
           <Panel title="Customer">

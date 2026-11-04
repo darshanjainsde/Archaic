@@ -1,4 +1,5 @@
 import "server-only";
+import { escapeHtml } from "./escape";
 
 /** Sends transactional email through Resend if RESEND_API_KEY is set; otherwise logs (never throws). */
 export async function sendEmail(opts: { to: string; subject: string; html: string; text?: string }) {
@@ -22,9 +23,7 @@ export async function sendEmail(opts: { to: string; subject: string; html: strin
   }
 }
 
-export function escapeHtml(s: string) {
-  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
-}
+export { escapeHtml };
 
 /** Simple branded wrapper for all emails. */
 export function emailLayout(title: string, bodyHtml: string) {

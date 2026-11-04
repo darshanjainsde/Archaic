@@ -14,7 +14,7 @@ export default async function CheckoutPage() {
   ]);
   const methods = availablePaymentMethods(s);
   return (
-    <main className="container-x py-10 md:py-16">
+    <div className="container-x py-10 md:py-16">
       <h1 className="mb-8 text-5xl md:text-6xl">Checkout</h1>
       <CheckoutView
         user={{ name: user.name, email: user.email, phone: user.phone }}
@@ -28,6 +28,6 @@ export default async function CheckoutPage() {
         accent={s.theme.colors.accent}
         deliveryText={`Dispatched within ${s.commerce.dispatchDays} working days, delivered in ${s.commerce.deliveryDaysMin}–${s.commerce.deliveryDaysMax} days.`}
       />
-    </main>
+    </div>
   );
 }

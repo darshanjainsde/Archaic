@@ -30,7 +30,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const user = await requireAdmin();
   const [toShip, settings] = await Promise.all([db.order.count({ where: { status: { in: ["CONFIRMED", "PROCESSING"] } } }), getSettings()]);
   return (
-    <div style={ADMIN_VARS} className="admin-root min-h-dvh bg-bg text-ink [&_h1]:tracking-tight [&_h2]:tracking-tight [&_h1]:leading-tight [&_h2]:leading-tight">
+    <div style={{ ...ADMIN_VARS, fontFamily: "var(--font-inter), system-ui, sans-serif" }} className="admin-root min-h-dvh bg-bg text-ink [&_h1]:tracking-tight [&_h2]:tracking-tight [&_h1]:leading-tight [&_h2]:leading-tight">
       <AdminShell userName={user.name} storeName={settings.store.name} toShip={toShip}>
         {children}
       </AdminShell>

@@ -39,7 +39,7 @@ export default async function TrackPage({ searchParams }: { searchParams: Promis
   }
 
   return (
-    <main className="container-x py-10 md:py-16">
+    <div className="container-x py-10 md:py-16">
       <div className="grid gap-10 lg:grid-cols-[minmax(0,420px)_1fr] lg:items-start">
         <div className="space-y-5">
           <h1 className="text-5xl md:text-6xl">Track your order</h1>
@@ -85,6 +85,6 @@ export default async function TrackPage({ searchParams }: { searchParams: Promis
           )}
         </section>
       </div>
-    </main>
+    </div>
   );
 }

@@ -1,4 +1,4 @@
-import { escapeHtml } from "./email";
+import { escapeHtml } from "./escape";
 
 /** Tiny, safe markdown subset for product descriptions & CMS pages: ## headings, **bold**, *italic*, lists, links, paragraphs. */
 export function renderMarkdown(src: string): string {

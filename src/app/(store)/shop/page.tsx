@@ -94,7 +94,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
           <p className="mt-3 max-w-xl text-[17px]">{intro}</p>
         </div>
       </div>
-      <div className="grid gap-10 lg:grid-cols-[240px_1fr] lg:gap-12">
+      <div className="grid gap-10 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-12">
         <aside className="hidden lg:block" aria-label="Filters">
           <div className="sticky top-28"><Suspense><ShopFilters categories={categories} /></Suspense></div>
         </aside>

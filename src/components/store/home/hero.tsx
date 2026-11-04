@@ -11,16 +11,15 @@ export function Hero({ slides, storeName, tagline }: { slides: HeroSlide[]; stor
       <div className={many ? "snap-row no-scrollbar auto-cols-[100%]" : ""}>
         {slides.map((s, i) => (
           <div key={i} className="container-x grid items-stretch gap-4 pb-10 pt-4 md:grid-cols-12 md:gap-6 md:pb-16 md:pt-8" id={`hero-${i}`}>
-            <div className="label-panel rise order-2 flex flex-col justify-between gap-8 p-6 md:order-1 md:col-span-6 md:p-12 lg:col-span-5 lg:min-h-[640px]">
+            <div className="label-panel rise order-2 flex flex-col justify-between gap-8 p-6 md:order-2 md:col-span-12 md:p-12 lg:order-1 lg:col-span-6 lg:min-h-[640px]">
               <div className="flex items-baseline justify-between gap-4 text-[15px]">
                 <span className="font-display text-[19px]">{storeName}</span>
-                <span className="text-right opacity-80">Est. small batches</span>
-              </div>
+                              </div>
               <div>
                 {i === 0 ? (
-                  <h1 className="text-[44px] leading-[0.98] md:text-[64px] xl:text-[80px]">{s.title}</h1>
+                  <h1 className="text-[36px] leading-[0.98] sm:text-[48px] lg:text-[56px] xl:text-[68px]">{s.title}</h1>
                 ) : (
-                  <h2 className="text-[44px] leading-[0.98] md:text-[64px] xl:text-[80px]">{s.title}</h2>
+                  <h2 className="text-[36px] leading-[0.98] sm:text-[48px] lg:text-[56px] xl:text-[68px]">{s.title}</h2>
                 )}
                 <div className="perforated my-6 text-paper-ink" aria-hidden />
                 <p className="max-w-[40ch] text-[17px] md:text-[19px]">{s.text || tagline}</p>
@@ -34,7 +33,7 @@ export function Hero({ slides, storeName, tagline }: { slides: HeroSlide[]; stor
                 <Link href="/shop" className="text-[15px] font-semibold underline underline-offset-4">Browse everything</Link>
               </div>
             </div>
-            <div className="relative order-1 aspect-[4/5] overflow-hidden bg-surface md:order-2 md:col-span-6 md:aspect-auto lg:col-span-7" style={{ borderRadius: "var(--radius)" }}>
+            <div className="relative order-1 aspect-[5/4] overflow-hidden bg-surface md:order-1 md:col-span-12 md:aspect-[16/9] lg:order-2 lg:col-span-6 lg:aspect-auto" style={{ borderRadius: "var(--radius)" }}>
               {s.image ? (
                 <Img src={s.image} alt="" fill priority={i === 0} sizes="(min-width:768px) 55vw, 100vw" className="rise rise-1 object-cover" />
               ) : null}

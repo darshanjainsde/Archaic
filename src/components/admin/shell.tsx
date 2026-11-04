@@ -45,7 +45,7 @@ export function AdminShell({ children, userName, storeName, toShip }: { children
   );
 
   return (
-    <div className="lg:grid lg:grid-cols-[240px_1fr]">
+    <div className="lg:grid lg:grid-cols-[240px_minmax(0,1fr)]">
       <aside className="sticky top-0 hidden h-dvh overflow-y-auto border-r border-black/10 bg-surface lg:block">
         <div className="px-6 pb-2 pt-5 text-[15px] font-semibold">{storeName}</div>
         {nav}

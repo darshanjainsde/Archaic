@@ -36,7 +36,9 @@ export async function updateOrderStatus(_: R | null, fd: FormData): Promise<R> {
     if (status === "REFUNDED" && order.paymentStatus !== "PAID") return { ok: false, error: "Only paid orders can be marked refunded" };
   }
   const eta = fdate(fd, "estimatedDelivery");
-  await changeOrderStatus(id, sameStatus ? order.status : status, { note: fstr(fd, "note") || null, isPublic: !fbool(fd, "private"), actor: "admin", tracking });
+  const note = fstr(fd, "note").slice(0, 1000) || null;
+  await changeOrderStatus(id, sameStatus ? order.status : status, { note, isPublic: !fbool(fd, "private"), actor: "admin", tracking });
+  if (sameStatus && note) await db.orderEvent.create({ data: { orderId: id, status: order.status, note, isPublic: !fbool(fd, "private") } });
   if (fstr(fd, "estimatedDelivery") || order.estimatedDelivery) await db.order.update({ where: { id }, data: { estimatedDelivery: eta } });
   refresh(id);
   return { ok: true, message: sameStatus ? "Order updated" : `Marked ${status.replace(/_/g, " ").toLowerCase()}` };

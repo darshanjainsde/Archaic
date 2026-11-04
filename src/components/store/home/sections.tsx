@@ -131,7 +131,7 @@ export function MembershipSection({ name, heading, text, tiers }: { name: string
     <section className="bg-field text-field-ink">
       <div className="container-x grid gap-10 py-16 md:grid-cols-12 md:py-24">
         <div className="md:col-span-5">
-          <h2 className="text-[38px] md:text-[60px]">{heading || name}</h2>
+          <h2 className="text-[38px] md:text-[44px] lg:text-[60px]">{heading || name}</h2>
           <p className="mt-4 max-w-md text-[18px]">{text || `Every order counts towards ${name}. Spend more over time and every future order costs less — automatically.`}</p>
           <Link href="/account/membership" className="btn btn-ink mt-8">See my membership</Link>
         </div>

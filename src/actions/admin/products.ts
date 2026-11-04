@@ -22,7 +22,7 @@ const groupSchema = z.object({
   values: z.array(valueSchema).min(1, "Each option group needs at least one value").max(60),
 });
 
-export const productInputSchema = z.object({
+const productInputSchema = z.object({
   name: z.string().trim().min(2, "Name is required").max(140),
   slug: z.string().trim().max(80).optional().default(""),
   shortDescription: z.string().trim().max(300).optional().default(""),

@@ -34,7 +34,7 @@ export function CartView(p: Props) {
             const q = quote?.lines[i];
             const max = Math.max(1, Math.min(p.maxQtyPerLine, q?.maxQty || p.maxQtyPerLine));
             return (
-              <li key={line.key} className="grid grid-cols-[88px_1fr] gap-4 bg-surface p-4 sm:grid-cols-[112px_1fr]" style={{ borderRadius: "var(--radius)" }}>
+              <li key={line.key} className="grid grid-cols-[88px_minmax(0,1fr)] gap-4 bg-surface p-4 sm:grid-cols-[112px_minmax(0,1fr)]" style={{ borderRadius: "var(--radius)" }}>
                 <Link href={`/product/${line.slug}`} className="relative block aspect-[4/5] overflow-hidden bg-bg">
                   <Img src={q?.image ?? line.image} alt={line.name} fill sizes="112px" className="object-cover" />
                 </Link>

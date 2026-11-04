@@ -15,14 +15,15 @@ export function InstallPrompt({ storeName }: { storeName: string }) {
     try { dismissed = localStorage.getItem("ac_install_dismissed") === "1"; } catch {}
     const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone;
     if (dismissed || standalone) return;
-    const onBip = (e: Event) => { e.preventDefault(); setEvt(e as BIPEvent); setShow(true); };
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onBip = (e: Event) => { e.preventDefault(); setEvt(e as BIPEvent); timer = setTimeout(() => setShow(true), 25000); };
     window.addEventListener("beforeinstallprompt", onBip);
     const ua = navigator.userAgent;
     if (/iPhone|iPad|iPod/.test(ua) && /Safari/.test(ua) && !/CriOS|FxiOS/.test(ua)) {
       const t = setTimeout(() => { setIos(true); setShow(true); }, 20000);
       return () => { clearTimeout(t); window.removeEventListener("beforeinstallprompt", onBip); };
     }
-    return () => window.removeEventListener("beforeinstallprompt", onBip);
+    return () => { clearTimeout(timer); window.removeEventListener("beforeinstallprompt", onBip); };
   }, []);
 
   if (!show) return null;

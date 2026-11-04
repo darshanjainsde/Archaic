@@ -146,7 +146,7 @@ export async function placeOrder(raw: unknown): Promise<PlaceOrderResult> {
         items: {
           create: valid.map((l) => ({ productId: l.productId, name: l.name, slug: l.slug, image: l.image, unitPrice: l.unitPrice, quantity: l.quantity, selections: l.selections as object, personalization: l.personalization, lineTotal: l.lineTotal })),
         },
-        events: { create: { status: "PENDING_PAYMENT", note: input.paymentMethod === "COD" ? "Order received." : "Order created. Waiting for payment.", isPublic: true } },
+        events: { create: { status: "PENDING_PAYMENT", note: input.paymentMethod === "COD" ? "Order received." : "Order created. Waiting for payment.", isPublic: input.paymentMethod !== "COD" } },
       },
     });
     if (input.paymentMethod === "COD") await confirmCodOrder(tx, created.id);
