@@ -1,0 +1,18 @@
+/* Storefront-only helpers (imported from app/(store)/layout.tsx) */
+.card-label { background: var(--paper); color: var(--paper-ink); }
+.swatch { width: 40px; height: 40px; border-radius: 999px; outline-offset: 3px; }
+.swatch[aria-checked="true"] { outline: 2px solid var(--ink); }
+.opt-btn { min-height: 44px; padding: 0 1rem; border-radius: var(--btn-radius); background: color-mix(in srgb, var(--ink) 8%, transparent); font-size: 15px; font-weight: 500; transition: background-color .15s, color .15s; }
+.opt-btn:hover:not(:disabled) { background: color-mix(in srgb, var(--ink) 14%, transparent); }
+.opt-btn[aria-checked="true"] { background: var(--ink); color: var(--bg); }
+.opt-btn:disabled, .swatch:disabled { opacity: .35; text-decoration: line-through; cursor: not-allowed; }
+.details-row > summary { list-style: none; cursor: pointer; display: flex; justify-content: space-between; align-items: center; padding: 1.1rem 0; font-family: var(--font-display); font-size: 1.35rem; }
+.details-row > summary::-webkit-details-marker { display: none; }
+.details-row > summary::after { content: "+"; font-family: var(--font-body); font-size: 1.5rem; transition: transform .2s; }
+.details-row[open] > summary::after { transform: rotate(45deg); }
+.details-row + .details-row { border-top: 1px solid color-mix(in srgb, var(--ink) 14%, transparent); }
+.card-lift { transition: transform .35s cubic-bezier(.2,.7,.2,1); }
+.group:hover .card-lift { transform: translateY(-4px); }
+.img-zoom { transition: transform .8s cubic-bezier(.2,.7,.2,1); }
+.group:hover .img-zoom { transform: scale(1.04); }
+@media (prefers-reduced-motion: reduce) { .card-lift, .img-zoom { transition: none; } .group:hover .card-lift, .group:hover .img-zoom { transform: none; } }

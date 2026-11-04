@@ -1,6 +1,5 @@
 "use server";
 import { z } from "zod";
-import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings, availablePaymentMethods } from "@/lib/settings";
@@ -222,7 +221,3 @@ export async function retryPayment(number: string, method?: string): Promise<Pla
   }
 }
 
-export async function clientIp() {
-  const h = await headers();
-  return h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "unknown";
-}
