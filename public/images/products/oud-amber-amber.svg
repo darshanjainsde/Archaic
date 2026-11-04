@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000">
+  <rect width="800" height="1000" fill="#cdbba3"/>
+  <rect x="0" y="780" width="800" height="220" fill="#000" opacity=".07"/>
+  
+  <ellipse cx="400" cy="326" rx="22" ry="34" fill="#f6c46a" opacity=".18"/>
+  <path d="M400 290c10 14 14 24 9 33-3 6-15 6-18 0-5-9-1-19 9-33z" fill="#f2b24e"/>
+  <path d="M400 304c5 8 6 13 3 17-2 3-6 3-7 0-2-4 0-9 4-17z" fill="#fff1c7"/>
+  <rect x="398.8" y="322" width="2.4" height="10" fill="#2a1f14"/>
+  <path d="M240 330h320v20c20 0 30 14 30 34v380c0 26-20 46-46 46H256c-26 0-46-20-46-46V384c0-20 10-34 30-34z" fill="#d8cbb5" opacity=".55"/>
+  <path d="M228 420h344v344c0 20-16 36-36 36H264c-20 0-36-16-36-36z" fill="#d9a05b"/>
+  <path d="M228 420h344v18H228z" fill="#fff" opacity=".18"/>
+  <path d="M250 360h14v400h-14z" fill="#fff" opacity=".22"/>
+  
+  <path d="M278 500h244l10 10v180l-10 10h-244l-10-10v-180z" fill="#f4ecdd"/>
+  <text x="400" y="530" text-anchor="middle" font-family="Georgia,serif" font-size="13" letter-spacing="3" fill="#2b2216" opacity=".75">ARCHAIC</text>
+  <text x="400" y="610" text-anchor="middle" font-family="Georgia,serif" font-size="25" fill="#2b2216">Oud &amp; Amber</text>
+  <text x="400" y="678" text-anchor="middle" font-family="Georgia,serif" font-style="italic" font-size="13" fill="#2b2216" opacity=".8">resin · smoke · honey</text>
+</svg>

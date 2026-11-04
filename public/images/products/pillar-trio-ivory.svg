@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 1000" width="800" height="1000">
+  <rect width="800" height="1000" fill="#b9a68c"/>
+  <rect x="0" y="800" width="800" height="200" fill="#000" opacity=".07"/>
+  
+  <ellipse cx="250" cy="516" rx="22" ry="34" fill="#f6c46a" opacity=".18"/>
+  <path d="M250 480c10 14 14 24 9 33-3 6-15 6-18 0-5-9-1-19 9-33z" fill="#f2b24e"/>
+  <path d="M250 494c5 8 6 13 3 17-2 3-6 3-7 0-2-4 0-9 4-17z" fill="#fff1c7"/>
+  <rect x="248.8" y="512" width="2.4" height="10" fill="#2a1f14"/>
+  <ellipse cx="400" cy="376" rx="22" ry="34" fill="#f6c46a" opacity=".18"/>
+  <path d="M400 340c10 14 14 24 9 33-3 6-15 6-18 0-5-9-1-19 9-33z" fill="#f2b24e"/>
+  <path d="M400 354c5 8 6 13 3 17-2 3-6 3-7 0-2-4 0-9 4-17z" fill="#fff1c7"/>
+  <rect x="398.8" y="372" width="2.4" height="10" fill="#2a1f14"/>
+  <ellipse cx="550" cy="596" rx="22" ry="34" fill="#f6c46a" opacity=".18"/>
+  <path d="M550 560c10 14 14 24 9 33-3 6-15 6-18 0-5-9-1-19 9-33z" fill="#f2b24e"/>
+  <path d="M550 574c5 8 6 13 3 17-2 3-6 3-7 0-2-4 0-9 4-17z" fill="#fff1c7"/>
+  <rect x="548.8" y="592" width="2.4" height="10" fill="#2a1f14"/>
+  <rect x="190" y="520" width="120" height="280" fill="#efe6d2"/>
+  <rect x="330" y="380" width="140" height="420" fill="#efe6d2"/>
+  <rect x="490" y="600" width="120" height="200" fill="#efe6d2"/>
+  <rect x="330" y="380" width="140" height="12" fill="#fff" opacity=".2"/>
+  <path d="M342 560h116v120h-116z" fill="#f4ecdd"/>
+  <text x="400" y="612" text-anchor="middle" font-family="Georgia,serif" font-size="12" letter-spacing="2" fill="#2b2216">ARCHAIC</text>
+  <text x="400" y="645" text-anchor="middle" font-family="Georgia,serif" font-size="16" fill="#2b2216">Pillar trio</text>
+</svg>
