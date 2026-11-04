@@ -3,7 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { getCurrentUser } from "@/lib/auth";
 import { getSettings, availablePaymentMethods } from "@/lib/settings";
-import { quoteCart, nextOrderNumber, confirmCodOrder, markOrderPaid, markPaymentFailed, type Quote } from "@/lib/orders";
+import { quoteCart, nextOrderNumber, confirmCodOrder, markOrderPaid, markPaymentFailed, sendOrderEmail, type Quote } from "@/lib/orders";
 import { addressSchema, fieldErrors } from "@/lib/address";
 import { createRazorpayOrder, razorpayKeyId, verifyRazorpaySignature, fetchRazorpayOrderPayments } from "@/lib/payments/razorpay";
 import { createCashfreeOrder, cashfreeMode } from "@/lib/payments/cashfree";
@@ -109,7 +109,7 @@ export async function placeOrder(raw: unknown): Promise<PlaceOrderResult> {
   if (valid.length === 0) return { ok: false, error: "Your bag is empty", quote };
   if (input.couponCode && quote.couponError) return { ok: false, error: quote.couponError, quote };
   if (input.paymentMethod !== "COD" && quote.total < 100) return { ok: false, error: "Order total is too low for online payment", quote };
-  if (input.paymentMethod === "COD" && s.commerce.codMaxOrder > 0 && quote.total > s.commerce.codMaxOrder) return { ok: false, error: "Cash on Delivery is not available for this order value. Please pay online.", quote };
+  if (input.paymentMethod === "COD" && s.commerce.codMaxOrder > 0 && quote.total - quote.codFee > s.commerce.codMaxOrder) return { ok: false, error: "Cash on Delivery is not available for this order value. Please pay online.", quote };
 
   const order = await db.$transaction(async (tx) => {
     const number = await nextOrderNumber(tx);
@@ -154,7 +154,6 @@ export async function placeOrder(raw: unknown): Promise<PlaceOrderResult> {
   });
 
   if (input.paymentMethod === "COD") {
-    const { sendOrderEmail } = await import("@/lib/orders");
     await sendOrderEmail(order.id, "confirmed").catch(() => {});
     return { ok: true, launch: { kind: "cod", number: order.number } };
   }

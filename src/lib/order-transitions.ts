@@ -1,0 +1,15 @@
+import type { OrderStatus } from "@prisma/client";
+
+/** Status changes an admin may make from each status. */
+export const ADMIN_TRANSITIONS: Record<OrderStatus, OrderStatus[]> = {
+  PENDING_PAYMENT: ["CANCELLED"],
+  CONFIRMED: ["PROCESSING", "SHIPPED", "CANCELLED"],
+  PROCESSING: ["SHIPPED", "CONFIRMED", "CANCELLED"],
+  SHIPPED: ["OUT_FOR_DELIVERY", "DELIVERED", "RETURNED"],
+  OUT_FOR_DELIVERY: ["DELIVERED", "SHIPPED", "RETURNED"],
+  DELIVERED: ["RETURN_REQUESTED", "RETURNED", "REFUNDED"],
+  RETURN_REQUESTED: ["RETURNED", "DELIVERED", "REFUNDED"],
+  RETURNED: ["REFUNDED"],
+  CANCELLED: ["REFUNDED", "CONFIRMED"],
+  REFUNDED: [],
+};
