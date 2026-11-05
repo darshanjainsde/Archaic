@@ -27,7 +27,8 @@ export async function loadBoxCatalog(s: StoreSettings): Promise<BoxCatalog | nul
     } else {
       const fits = new Map(c.products.map((p) => [p.slug, p]));
       const or: Prisma.ProductWhereInput[] = [];
-      if (c.categorySlug) or.push(categoryWhere(c.categorySlug));
+      if (c.categorySlug === "*") or.push({});
+      else if (c.categorySlug) or.push(categoryWhere(c.categorySlug));
       const explicit = c.products.filter((p) => p.enabled).map((p) => p.slug);
       if (explicit.length) or.push({ slug: { in: explicit } });
       const products = or.length

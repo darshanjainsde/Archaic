@@ -79,7 +79,7 @@ export const boxCategorySchema = z.object({
   name: z.string().min(1).max(40),
   /** "products": shop products (their own options, prices and stock). "custom": options added here. */
   kind: z.enum(["products", "custom"]),
-  /** products: every active product in this shop category (and its sub-categories) can go in */
+  /** products: every active product in this shop category (and its sub-categories) can go in; "*" = the whole shop */
   categorySlug: z.string().max(120).default(""),
   /** products: per-product space/shape, and products added one by one */
   products: z.array(boxProductFitSchema).max(60).default([]),
@@ -151,7 +151,11 @@ export const DEFAULT_BOXES: BoxSettings = {
   fillers: [D("crinkle", "Crinkle kraft", 0, "#b9894f"), D("woodwool", "Wood wool", 4900, "#e2cf9f"), D("rose", "Dried rose petals", 12900, "#b2323f"), D("marigold", "Marigold petals", 9900, "#e8961c")],
   seals: [D("maroon", "Maroon wax", 9900, "#7a1f16"), D("gold", "Gold wax", 9900, "#b8892b"), D("forest", "Forest wax", 9900, "#2f4a2c")],
   categories: [
-    { id: "candles", name: "Candles", kind: "products", categorySlug: "candles", products: [], fallback: { w: 1, h: 1, heightCm: 7, shape: "jar" }, options: [], enabled: true },
+    {
+      id: "shop", name: "From our shop", kind: "products", categorySlug: "*",
+      products: [{ slug: "dried-flower-candle-with-glass-dome", w: 2, h: 2, heightCm: 11, shape: "dome", enabled: true }],
+      fallback: { w: 1, h: 1, heightCm: 7, shape: "jar" }, options: [], enabled: true,
+    },
   ],
   card: {
     papers: [D("cotton", "Cotton rag paper", 0, "#f7efe1"), D("flower", "Pressed-flower paper", 4900, "#f6ece4"), D("seed", "Seed paper (plant it)", 6900, "#efe7d4")],

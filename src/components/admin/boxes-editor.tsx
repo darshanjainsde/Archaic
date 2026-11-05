@@ -232,6 +232,7 @@ export function BoxesEditor({ initial, products, categories, initialTab }: { ini
                     <div className="min-w-0">
                       <label className="label" htmlFor="cat-src">Every active product in</label>
                       <select id="cat-src" className="field" value={cat.categorySlug} onChange={(e) => setCat({ categorySlug: e.target.value })}>
+                        <option value="*">Every active product in the shop</option>
                         <option value="">No shop category: only the products below</option>
                         {categories.map((c) => <option key={c.slug} value={c.slug}>{c.parentName ? `— ${c.name}` : c.name}</option>)}
                       </select>
