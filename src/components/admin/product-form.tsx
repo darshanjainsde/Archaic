@@ -255,6 +255,7 @@ function Form({ initial, categories, onDiscard }: FormProps & { onDiscard: () =>
             {pricePaise !== null && <p className="text-[14px] text-muted">Base price {formatMoney(pricePaise)}</p>}
             <button type="submit" className="btn btn-primary w-full" disabled={pending}>{pending ? "Saving…" : initial.id ? "Save changes" : "Create product"}</button>
             {initial.id && f.status === "ACTIVE" && <a className="btn btn-ghost w-full" href={`/product/${effectiveSlug}`} target="_blank" rel="noreferrer"><ExternalLink size={18} aria-hidden />View in store</a>}
+            {initial.id && f.status !== "ACTIVE" && <a className="btn btn-ghost w-full" href={`/api/preview?slug=${effectiveSlug}`} target="_blank" rel="noreferrer"><ExternalLink size={18} aria-hidden />Preview draft</a>}
           </div>
         </Panel>
         <Panel title="Organise">

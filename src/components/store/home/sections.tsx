@@ -129,7 +129,7 @@ export function CategoryTiles({ heading, text, categories }: { heading: string; 
   );
 }
 
-export function ProductsSection({ heading, text, products, layout, href, wishlist }: { heading: string; text?: string; products: ProductCardData[]; layout: "grid" | "carousel"; href: string; wishlist: Set<string> }) {
+export function ProductsSection({ heading, text, products, layout, href, wishlist }: { heading: string; text?: string; products: ProductCardData[]; layout: "grid" | "carousel"; href: string; wishlist?: Set<string> }) {
   if (!products.length) return null;
   return (
     <section className="reveal container-x">
@@ -137,7 +137,7 @@ export function ProductsSection({ heading, text, products, layout, href, wishlis
       {layout === "carousel" ? (
         <div className="snap-row no-scrollbar -mx-4 auto-cols-[68%] gap-3 px-4 py-2 sm:auto-cols-[42%] md:-mx-8 md:auto-cols-[30%] md:gap-6 md:px-8 xl:auto-cols-[calc((100%-72px)/4)]" style={{ scrollPaddingInline: "16px" }}>
           {products.map((p) => (
-            <ProductCard key={p.id} p={p} wishlisted={wishlist.has(p.id)} />
+            <ProductCard key={p.id} p={p} wishlisted={wishlist?.has(p.id)} />
           ))}
         </div>
       ) : (

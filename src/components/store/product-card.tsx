@@ -8,7 +8,7 @@ import { QuickAddButton } from "./quick-add-button";
 import { cn } from "@/lib/utils";
 
 /** The parcel card: a kraft frame round the photo, a wax-seal badge, and a perforated paper label carrying name, scent, stars and price with "+ Add". */
-export function ProductCard({ p, wishlisted = false, priority = false, className }: { p: ProductCardData; wishlisted?: boolean; priority?: boolean; className?: string }) {
+export function ProductCard({ p, wishlisted, priority = false, className }: { p: ProductCardData; wishlisted?: boolean; priority?: boolean; className?: string }) {
   const off = discountPercent(p.price, p.compareAtPrice);
   const href = `/product/${p.slug}`;
   return (

@@ -1,4 +1,5 @@
 "use client";
+import { useMe } from "@/lib/me-store";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -166,7 +167,10 @@ function MobileItem({ link, menu }: { link: NavLink; menu: ReturnType<typeof men
 }
 
 /* ---------------- Header ---------------- */
-export function Header({ storeName, logoUrl, nav, tree, signedIn, isAdmin }: { storeName: string; logoUrl?: string | null; nav: NavLink[]; tree: MenuCat[]; signedIn: boolean; isAdmin: boolean }) {
+export function Header({ storeName, logoUrl, nav, tree }: { storeName: string; logoUrl?: string | null; nav: NavLink[]; tree: MenuCat[] }) {
+  const me = useMe();
+  const signedIn = Boolean(me.role);
+  const isAdmin = me.role === "a";
   const [menu, setMenu] = useState(false);
   const [search, setSearch] = useState(false);
   const [openIdx, setOpenIdx] = useState<number | null>(null);

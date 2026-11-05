@@ -45,7 +45,7 @@ function CandleIcon({ hex }: { hex: string | null | undefined }) {
   );
 }
 
-export function ProductView({ p, wishlisted, deliveryText, children }: { p: ProductViewData; wishlisted: boolean; deliveryText: string; children?: React.ReactNode }) {
+export function ProductView({ p, wishlisted, deliveryText, children }: { p: ProductViewData; wishlisted?: boolean; deliveryText: string; children?: React.ReactNode }) {
   const router = useRouter();
   const [sel, setSel] = useState<Record<string, string>>(() => defaultSelections(p.options));
   const [lit, setLit] = useState(false);

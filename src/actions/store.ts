@@ -2,7 +2,8 @@
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, HINT_COOKIE } from "@/lib/auth";
+import { cookies } from "next/headers";
 import { rateLimit } from "@/lib/rate-limit";
 import { headers } from "next/headers";
 
@@ -34,6 +35,27 @@ export async function toggleWishlist(productId: string): Promise<{ ok: boolean; 
   else await db.wishlistItem.create({ data: { userId: user.id, productId: id.data } }).catch(() => null);
   revalidatePath("/wishlist");
   return { ok: true, wishlisted: !existing };
+}
+
+/**
+ * What a cached page needs to know about the visitor, in one call: signed in (and admin?), the wishlist,
+ * and their review of one product. Also keeps the browser-readable hint cookie in step with the session.
+ */
+export async function myState(productId?: string | null): Promise<{ role: "u" | "a" | null; wishlist: string[]; review: { rating: number; title: string | null; body: string } | null }> {
+  const user = await getCurrentUser();
+  const jar = await cookies();
+  if (!user) {
+    if (jar.get(HINT_COOKIE)) jar.delete(HINT_COOKIE);
+    return { role: null, wishlist: [], review: null };
+  }
+  const role = user.role === "ADMIN" ? "a" : "u";
+  if (jar.get(HINT_COOKIE)?.value !== role) jar.set(HINT_COOKIE, role, { httpOnly: false, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30 });
+  const pid = typeof productId === "string" && productId.length <= 64 ? productId : null;
+  const [items, review] = await Promise.all([
+    db.wishlistItem.findMany({ where: { userId: user.id }, select: { productId: true }, take: 500 }),
+    pid ? db.review.findUnique({ where: { productId_userId: { productId: pid, userId: user.id } }, select: { rating: true, title: true, body: true } }) : null,
+  ]);
+  return { role, wishlist: items.map((i) => i.productId), review };
 }
 
 const reviewSchema = z.object({

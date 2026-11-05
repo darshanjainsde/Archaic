@@ -4,14 +4,14 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { getCurrentUser } from "@/lib/auth";
-import { listProducts, wishlistIds } from "@/lib/catalog";
+import { draftMode } from "next/headers";
+import { listProducts } from "@/lib/catalog";
 import { parseOptions, parsePersonalization } from "@/lib/pricing";
 import { renderMarkdown } from "@/lib/markdown";
 import { formatDate, siteUrl } from "@/lib/utils";
 import type { Spec } from "@/lib/types";
 import { ProductView } from "@/components/store/product/product-view";
-import { ReviewForm } from "@/components/store/product/review-form";
+import { ReviewArea } from "@/components/store/product/review-form";
 import { ProductCard } from "@/components/store/product-card";
 import { Stars } from "@/components/ui/stars";
 import { breadcrumbLd, ldJson, returnPolicyLd, shippingLd, socialImage } from "@/lib/seo";
@@ -49,19 +49,25 @@ function addWorkingDays(from: Date, days: number) {
   return d;
 }
 
+/** Served from the CDN; refreshed on every admin save and at most every 5 minutes (stock, reviews). */
+export const revalidate = 300;
+
+export async function generateStaticParams() {
+  const rows = await db.product.findMany({ where: { status: "ACTIVE" }, select: { slug: true }, take: 200 }).catch(() => []);
+  return rows.map((r) => ({ slug: r.slug }));
+}
+
 export default async function ProductPage({ params }: { params: Params }) {
   const { slug } = await params;
-  const [p, settings, user] = await Promise.all([getProduct(slug), getSettings(), getCurrentUser()]);
+  const [p, settings, preview] = await Promise.all([getProduct(slug), getSettings(), draftMode()]);
   if (!p) notFound();
-  const isAdmin = user?.role === "ADMIN";
-  if (p.status !== "ACTIVE" && !isAdmin) notFound();
+  // Drafts are visible only in preview mode, which only an admin can switch on (/api/preview).
+  if (p.status !== "ACTIVE" && !preview.isEnabled) notFound();
 
-  const [ratingAgg, reviews, myReview, related, wishlist] = await Promise.all([
+  const [ratingAgg, reviews, related] = await Promise.all([
     db.review.aggregate({ where: { productId: p.id, isVisible: true }, _avg: { rating: true }, _count: true }),
     db.review.findMany({ where: { productId: p.id, isVisible: true }, orderBy: [{ isVerified: "desc" }, { createdAt: "desc" }], take: 20, include: { user: { select: { name: true } } } }),
-    user ? db.review.findUnique({ where: { productId_userId: { productId: p.id, userId: user.id } } }) : null,
     p.categoryId ? listProducts({ where: { categoryId: p.categoryId, id: { not: p.id } }, take: 4 }) : listProducts({ where: { id: { not: p.id } }, take: 4 }),
-    wishlistIds(user?.id),
   ]);
 
   const c = settings.commerce;
@@ -131,7 +137,6 @@ export default async function ProductPage({ params }: { params: Params }) {
           stock: p.stock, trackInventory: p.trackInventory, maxQtyPerLine: c.maxQtyPerLine, category: p.category ? { name: p.category.name, slug: p.category.slug } : null,
           rating, isDraft: p.status !== "ACTIVE",
         }}
-        wishlisted={wishlist.has(p.id)}
         deliveryText={deliveryText}
       >
         <div>
@@ -167,11 +172,7 @@ export default async function ProductPage({ params }: { params: Params }) {
             <p className="mt-4 text-[17px]">No reviews yet. Be the first to tell others how it burns.</p>
           )}
           <div className="mt-8">
-            {user ? (
-              <ReviewForm productId={p.id} existing={myReview ? { rating: myReview.rating, title: myReview.title, body: myReview.body } : null} />
-            ) : (
-              <Link href={`/login?next=${encodeURIComponent(`/product/${p.slug}#reviews`)}`} className="btn btn-ghost">Sign in to write a review</Link>
-            )}
+            <ReviewArea productId={p.id} slug={p.slug} />
           </div>
         </div>
         <div className="flex flex-col gap-4 lg:col-span-7 lg:col-start-6">
@@ -192,7 +193,7 @@ export default async function ProductPage({ params }: { params: Params }) {
         <section aria-labelledby="related-h" className="mt-20 md:mt-32">
           <h2 id="related-h" className="mb-8 text-[34px] md:text-[48px]">You may also like</h2>
           <div className="grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-4 md:gap-x-5">
-            {related.map((r) => <ProductCard key={r.id} p={r} wishlisted={wishlist.has(r.id)} />)}
+            {related.map((r) => <ProductCard key={r.id} p={r} />)}
           </div>
         </section>
       )}

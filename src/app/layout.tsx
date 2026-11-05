@@ -8,8 +8,6 @@ import { siteUrl } from "@/lib/utils";
 import { ServiceWorkerRegister } from "@/components/pwa/sw-register";
 import { socialImage } from "@/lib/seo";
 
-export const dynamic = "force-dynamic";
-
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings();
   return {

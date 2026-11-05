@@ -3,8 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
-import { listProducts, wishlistIds } from "@/lib/catalog";
-import { getCurrentUser } from "@/lib/auth";
+import { listProducts } from "@/lib/catalog";
 import { ProductGrid } from "@/components/store/product-card";
 import { MobileFilterButton, ShopFilters, SortSelect } from "@/components/store/shop-filters";
 import { EmptyState } from "@/components/ui/empty";
@@ -78,13 +77,11 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
     : sort === "bestsellers" ? [{ soldCount: "desc" }, { sortOrder: "asc" }]
     : [{ featured: "desc" }, { sortOrder: "asc" }, { createdAt: "desc" }];
 
-  const user = await getCurrentUser();
-  const [total, products, cats, category, wishlist] = await Promise.all([
+  const [total, products, cats, category] = await Promise.all([
     db.product.count({ where }),
     listProducts({ where, orderBy, take: PER_PAGE, skip: (page - 1) * PER_PAGE }),
     db.category.findMany({ where: { isVisible: true }, orderBy: [{ sortOrder: "asc" }, { name: "asc" }], include: { _count: { select: { products: { where: { status: "ACTIVE" } } } } } }),
     slug ? db.category.findUnique({ where: { slug } }) : null,
-    wishlistIds(user?.id),
   ]);
   // counts include sub-categories, so a parent whose products all live in its children still shows up
   const fullCount = (c: (typeof cats)[number]) => c._count.products + cats.filter((k) => k.parentId === c.id).reduce((n, k) => n + k._count.products, 0);
@@ -178,7 +175,7 @@ export default async function ShopPage({ searchParams }: { searchParams: SP }) {
             </div>
           </div>
           {products.length ? (
-            <ProductGrid products={products} wishlist={wishlist} priorityCount={4} />
+            <ProductGrid products={products} priorityCount={4} />
           ) : (
             <EmptyState title="Nothing matches yet" text={q ? "Try a different word — a scent like “sandalwood”, or “gift”." : "Try removing a filter to see more."} href="/shop" cta="See all products" />
           )}

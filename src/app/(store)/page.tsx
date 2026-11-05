@@ -1,7 +1,6 @@
 import { getSettings } from "@/lib/settings";
-import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { productsForSource, wishlistIds } from "@/lib/catalog";
+import { productsForSource } from "@/lib/catalog";
 import { getCategoryTree } from "@/lib/categories";
 import { Hero, type HeroSlide } from "@/components/store/home/hero";
 import { BoxEntry } from "@/components/store/home/box-entry";
@@ -32,19 +31,21 @@ function sourceHref(s: Extract<HomeSection, { type: "products" }>) {
   }
 }
 
+/** Served from the CDN; refreshed on every admin save and at most every 5 minutes (stock, new reviews). */
+export const revalidate = 300;
+
 export default async function HomePage() {
-  const [settings, user] = await Promise.all([getSettings(), getCurrentUser()]);
+  const settings = await getSettings();
   const sections = settings.home.sections.filter((s) => s.enabled);
   const types = new Set(sections.map((s) => s.type));
 
-  const [heroBanners, promoBanners, categories, reviews, wishlist] = await Promise.all([
+  const [heroBanners, promoBanners, categories, reviews] = await Promise.all([
     types.has("hero") ? activeBanners("HERO") : [],
     types.has("promo") ? activeBanners("PROMO") : [],
     types.has("categories") ? getCategoryTree() : [],
     types.has("reviews")
       ? db.review.findMany({ where: { isVisible: true, rating: { gte: 4 }, product: { status: "ACTIVE" } }, orderBy: { createdAt: "desc" }, take: 6, include: { user: { select: { name: true } }, product: { select: { name: true, slug: true } } } })
       : [],
-    wishlistIds(user?.id),
   ]);
 
   const heroSection = sections.find((s): s is Extract<HomeSection, { type: "hero" }> => s.type === "hero");
@@ -100,7 +101,7 @@ export default async function HomePage() {
               <CategoryTiles key={s.id} heading={s.heading} text={s.text} categories={categories.filter((c) => c.count > 0).map((c) => ({ slug: c.slug, name: c.name, description: c.description, image: c.image, count: c.count }))} />
             );
           case "products":
-            return <ProductsSection key={s.id} heading={s.heading} text={s.text} products={productLists[idx] ?? []} layout={s.layout} href={sourceHref(s)} wishlist={wishlist} />;
+            return <ProductsSection key={s.id} heading={s.heading} text={s.text} products={productLists[idx] ?? []} layout={s.layout} href={sourceHref(s)} />;
           case "promo":
             return promoBanners[0] ? <PromoBand key={s.id} banner={promoBanners[0]} /> : null;
           case "story":

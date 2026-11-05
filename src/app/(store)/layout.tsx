@@ -1,6 +1,6 @@
 import "../store.css";
 import { getSettings } from "@/lib/settings";
-import { getCurrentUser } from "@/lib/auth";
+import { unstable_cache } from "next/cache";
 import { db } from "@/lib/db";
 import { AnnouncementBar } from "@/components/store/announcement";
 import { Header } from "@/components/store/header";
@@ -11,13 +11,15 @@ import { getCategoryTree } from "@/lib/categories";
 import { Scene } from "@/components/store/scene";
 import { QuietRoutes } from "@/components/store/quiet-routes";
 
+/** Footer pages change rarely; cached so store pages can be served from the CDN. */
+const footerPages = unstable_cache(
+  () => db.page.findMany({ where: { isPublished: true, showInFooter: true }, select: { slug: true, title: true }, orderBy: { title: "asc" } }).catch(() => []),
+  ["footer-pages-v1"],
+  { tags: ["pages"], revalidate: 600 },
+);
+
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
-  const [settings, user, pages, tree] = await Promise.all([
-    getSettings(),
-    getCurrentUser(),
-    db.page.findMany({ where: { isPublished: true, showInFooter: true }, select: { slug: true, title: true }, orderBy: { title: "asc" } }).catch(() => []),
-    getCategoryTree(),
-  ]);
+  const [settings, pages, tree] = await Promise.all([getSettings(), footerPages(), getCategoryTree()]);
   const menuTree = tree.map((c) => ({
     slug: c.slug, name: c.name, image: c.image, count: c.count, showInMenu: c.showInMenu,
     children: c.children.filter((k) => k.count > 0).map((k) => ({ slug: k.slug, name: k.name, image: k.image, count: k.count, showInMenu: k.showInMenu, children: [] })),
@@ -28,7 +30,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
       <QuietRoutes />
       {settings.theme.motion === "honeycomb" && <Scene />}
       {settings.announcement.enabled && <AnnouncementBar messages={settings.announcement.messages} href={settings.announcement.href || undefined} />}
-      <Header storeName={settings.store.name} logoUrl={settings.store.logoUrl} nav={settings.nav} tree={menuTree} signedIn={Boolean(user)} isAdmin={user?.role === "ADMIN"} />
+      <Header storeName={settings.store.name} logoUrl={settings.store.logoUrl} nav={settings.nav} tree={menuTree} />
       <main id="main" className="flex-1">{children}</main>
       <Footer settings={settings} pages={pages} />
       <TabBar />

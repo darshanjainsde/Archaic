@@ -5,9 +5,12 @@ import { Heart } from "lucide-react";
 import { toast } from "sonner";
 import { toggleWishlist } from "@/actions/store";
 import { cn } from "@/lib/utils";
+import { meStore, useMe } from "@/lib/me-store";
 
-export function WishlistButton({ productId, initial = false, className, withLabel = false }: { productId: string; initial?: boolean; className?: string; withLabel?: boolean }) {
-  const [on, setOn] = useState(initial);
+export function WishlistButton({ productId, initial, className, withLabel = false }: { productId: string; initial?: boolean; className?: string; withLabel?: boolean }) {
+  const me = useMe();
+  const [local, setOn] = useState<boolean | null>(initial ?? null);
+  const on = local ?? me.wishlist.has(productId);
   const [pending, start] = useTransition();
   const router = useRouter();
   const pathname = usePathname();
@@ -25,6 +28,7 @@ export function WishlistButton({ productId, initial = false, className, withLabe
       }
       if (!res.ok) { setOn(prev); toast.error(res.message ?? "Could not update wishlist"); return; }
       setOn(Boolean(res.wishlisted));
+      meStore.setWish(productId, Boolean(res.wishlisted));
       toast(res.wishlisted ? "Saved to your wishlist" : "Removed from your wishlist");
     });
   };

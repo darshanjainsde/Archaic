@@ -4,6 +4,8 @@ import { Star } from "lucide-react";
 import { submitReview } from "@/actions/store";
 import { SubmitButton } from "@/components/ui/submit-button";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
+import { useMe } from "@/lib/me-store";
 
 export function ReviewForm({ productId, existing }: { productId: string; existing?: { rating: number; title: string | null; body: string } | null }) {
   const [state, action] = useActionState(submitReview, null);
@@ -38,4 +40,13 @@ export function ReviewForm({ productId, existing }: { productId: string; existin
       </div>
     </form>
   );
+}
+
+/** Signed in: the review form (with their earlier review). Signed out: a sign-in link. Loaded in the browser so the page can be cached. */
+export function ReviewArea({ productId, slug }: { productId: string; slug: string }) {
+  const me = useMe(productId);
+  if (!me.loaded && !me.role) return <div className="skeleton h-12 w-56" aria-hidden />;
+  if (!me.role) return <Link href={`/login?next=${encodeURIComponent(`/product/${slug}#reviews`)}`} className="btn btn-ghost">Sign in to write a review</Link>;
+  if (!me.reviews.has(productId)) return <div className="skeleton h-64" aria-hidden />;
+  return <ReviewForm key={me.reviews.get(productId) ? "edit" : "new"} productId={productId} existing={me.reviews.get(productId) ?? null} />;
 }

@@ -6,6 +6,9 @@ import bcrypt from "bcryptjs";
 import { db } from "./db";
 import { SESSION_COOKIE, SESSION_MAX_AGE, signSession, verifySession } from "./session-token";
 
+/** Non-secret, browser-readable "signed in as customer (u) / admin (a)" hint for cached pages. */
+export const HINT_COOKIE = "ac_hint";
+
 export type SessionUser = { id: string; email: string; name: string; phone: string | null; role: "CUSTOMER" | "ADMIN"; emailVerified: boolean; hasPassword: boolean };
 
 export async function hashPassword(pw: string) {
@@ -25,11 +28,15 @@ export async function createSession(user: { id: string; role: "CUSTOMER" | "ADMI
     path: "/",
     maxAge: SESSION_MAX_AGE,
   });
+  // Readable by the browser so cached (static) pages can show "My account" and Admin without a server round trip.
+  // It only changes what the header shows; every protected page and action still checks the signed session.
+  jar.set(HINT_COOKIE, user.role === "ADMIN" ? "a" : "u", { httpOnly: false, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: SESSION_MAX_AGE });
 }
 
 export async function destroySession() {
   const jar = await cookies();
   jar.delete(SESSION_COOKIE);
+  jar.delete(HINT_COOKIE);
 }
 
 /** Current user (verified against DB so role changes / password resets take effect immediately). */

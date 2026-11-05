@@ -1,6 +1,6 @@
 "use server";
 import { z } from "zod";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { touchCategories } from "@/lib/categories";
 import { db } from "@/lib/db";
 import { assertAdmin } from "@/lib/auth";
@@ -154,12 +154,14 @@ export async function savePage(_: R | null, fd: FormData): Promise<R> {
   if (clash && clash.id !== id) return { ok: false, error: `The URL /pages/${slug} is already used` };
   const data = { title: title.slice(0, 140), slug, content, isPublished: fbool(fd, "isPublished"), showInFooter: fbool(fd, "showInFooter") };
   const page = id ? await db.page.update({ where: { id }, data }) : await db.page.create({ data });
+  updateTag("pages");
   revalidatePath("/", "layout");
   return ok("Page saved", id ? undefined : `/admin/pages?edit=${page.id}`);
 }
 export async function deletePage(id: string): Promise<R> {
   await assertAdmin();
   await db.page.delete({ where: { id } });
+  updateTag("pages");
   revalidatePath("/", "layout");
   return ok("Page deleted", "/admin/pages");
 }

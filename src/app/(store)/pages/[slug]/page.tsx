@@ -15,6 +15,14 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   return { title: page.title, description: page.content.replace(/[#*_\[\]()]/g, "").slice(0, 160), alternates: { canonical: `/pages/${page.slug}` } };
 }
 
+/** Served from the CDN; admin saves refresh it immediately. */
+export const revalidate = 600;
+
+export async function generateStaticParams() {
+  const rows = await db.page.findMany({ where: { isPublished: true }, select: { slug: true } }).catch(() => []);
+  return rows.map((r) => ({ slug: r.slug }));
+}
+
 export default async function CmsPage({ params }: { params: Params }) {
   const { slug } = await params;
   const page = await getPage(slug);
