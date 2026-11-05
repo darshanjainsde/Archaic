@@ -1,6 +1,7 @@
 /** Shared domain types (safe for client and server). Money is always integer paise. */
 
-export type OptionDisplay = "swatch" | "button" | "dropdown";
+/** "candle": a small animated candle per value (flame on the chosen one); admin picks it per option group. */
+export type OptionDisplay = "swatch" | "button" | "dropdown" | "candle";
 
 export type OptionValue = {
   id: string;
@@ -12,6 +13,8 @@ export type OptionValue = {
   /** Image shown in the gallery when this value is chosen */
   image?: string | null;
   available: boolean;
+  /** Optional second line under the name on "candle" buttons (e.g. "resin · honey") */
+  note?: string | null;
 };
 
 export type OptionGroup = {

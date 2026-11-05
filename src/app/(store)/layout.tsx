@@ -7,18 +7,26 @@ import { Header } from "@/components/store/header";
 import { TabBar } from "@/components/store/tabbar";
 import { Footer } from "@/components/store/footer";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
+import { getCategoryTree } from "@/lib/categories";
+import { Scene } from "@/components/store/scene";
 
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
-  const [settings, user, pages] = await Promise.all([
+  const [settings, user, pages, tree] = await Promise.all([
     getSettings(),
     getCurrentUser(),
     db.page.findMany({ where: { isPublished: true, showInFooter: true }, select: { slug: true, title: true }, orderBy: { title: "asc" } }).catch(() => []),
+    getCategoryTree(),
   ]);
+  const menuTree = tree.map((c) => ({
+    slug: c.slug, name: c.name, image: c.image, count: c.count, showInMenu: c.showInMenu,
+    children: c.children.filter((k) => k.count > 0).map((k) => ({ slug: k.slug, name: k.name, image: k.image, count: k.count, showInMenu: k.showInMenu, children: [] })),
+  }));
   return (
     <div className="mobile-tabbar-space flex min-h-dvh flex-col">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[70] focus:bg-paper focus:p-3 focus:text-paper-ink">Skip to content</a>
+      {settings.theme.motion === "honeycomb" && <Scene />}
       {settings.announcement.enabled && <AnnouncementBar messages={settings.announcement.messages} href={settings.announcement.href || undefined} />}
-      <Header storeName={settings.store.name} logoUrl={settings.store.logoUrl} nav={settings.nav} signedIn={Boolean(user)} isAdmin={user?.role === "ADMIN"} />
+      <Header storeName={settings.store.name} logoUrl={settings.store.logoUrl} nav={settings.nav} tree={menuTree} signedIn={Boolean(user)} isAdmin={user?.role === "ADMIN"} />
       <main id="main" className="flex-1">{children}</main>
       <Footer settings={settings} pages={pages} />
       <TabBar />

@@ -5,7 +5,8 @@ import { getSettings } from "@/lib/settings";
 import { tierForSpend } from "@/lib/membership";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/utils";
-import { PageHeader, Table, Tag, Pagination, Empty } from "@/components/admin/ui";
+import { ChevronRight } from "lucide-react";
+import { PageHeader, Table, Tag, Pagination, Empty, CardList, Card } from "@/components/admin/ui";
 
 export const metadata = { title: "Customers" };
 const PER = 30;
@@ -30,13 +31,31 @@ export default async function Customers({ searchParams }: { searchParams: Promis
   return (
     <div>
       <PageHeader title="Customers" description={`${total} account${total === 1 ? "" : "s"}`} />
-      <form className="mb-4 flex gap-2">
-        <input name="q" defaultValue={q} placeholder="Search name, email or phone" aria-label="Search customers" className="field !min-h-[40px] !py-2" />
-        <select name="role" defaultValue={sp.role ?? ""} aria-label="Role" className="field !min-h-[40px] w-40 !py-2"><option value="">Everyone</option><option value="ADMIN">Admins</option></select>
-        <button className="btn btn-ink btn-sm !min-h-[40px]">Search</button>
+      <form className="mb-6 grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px_auto]">
+        <input name="q" defaultValue={q} type="search" placeholder="Search name, email or phone…" aria-label="Search customers" autoComplete="off" className="field" />
+        <select name="role" defaultValue={sp.role ?? ""} aria-label="Role" className="field"><option value="">Everyone</option><option value="ADMIN">Admins</option></select>
+        <button className="btn btn-ink">Search</button>
       </form>
       {users.length === 0 ? <Empty>No customers found.</Empty> : (
-        <Table>
+        <>
+        <CardList label="Customers">
+          {users.map((u) => {
+            const spend = spendMap.get(u.id) ?? 0;
+            return (
+              <Card key={u.id}>
+                <Link href={`/admin/customers/${u.id}`} className="flex items-center gap-3 p-4">
+                  <span className="min-w-0 flex-1">
+                    <span className="flex flex-wrap items-center gap-2 text-[16px] font-semibold">{u.name}{u.role === "ADMIN" && <Tag tone="amber">Admin</Tag>}</span>
+                    <span className="block truncate text-[14px] text-muted">{u.email}{u.phone ? ` · ${u.phone}` : ""}</span>
+                    <span className="mt-1 block text-[14px] tabular-nums">{u._count.orders} order{u._count.orders === 1 ? "" : "s"} · {formatMoney(spend)}{s.membership.enabled ? ` · ${tierForSpend(s.membership.tiers, spend).current.name}` : ""}</span>
+                  </span>
+                  <ChevronRight size={20} aria-hidden className="shrink-0 text-muted" />
+                </Link>
+              </Card>
+            );
+          })}
+        </CardList>
+        <Table hideOnPhone>
           <thead><tr><th>Name</th><th>Contact</th><th>Orders</th><th>Lifetime spend</th><th>Tier</th><th>Joined</th></tr></thead>
           <tbody>
             {users.map((u) => {
@@ -44,7 +63,7 @@ export default async function Customers({ searchParams }: { searchParams: Promis
               return (
                 <tr key={u.id}>
                   <td><Link className="font-semibold hover:underline" href={`/admin/customers/${u.id}`}>{u.name}</Link>{u.role === "ADMIN" && <span className="ml-2"><Tag tone="amber">Admin</Tag></span>}</td>
-                  <td>{u.email}<div className="text-[12px] text-muted">{u.phone}</div></td>
+                  <td>{u.email}<div className="text-[13px] text-muted">{u.phone}</div></td>
                   <td className="tabular-nums">{u._count.orders}</td>
                   <td className="tabular-nums">{formatMoney(spend)}</td>
                   <td>{s.membership.enabled ? tierForSpend(s.membership.tiers, spend).current.name : "—"}</td>
@@ -54,6 +73,7 @@ export default async function Customers({ searchParams }: { searchParams: Promis
             })}
           </tbody>
         </Table>
+        </>
       )}
       <Pagination page={page} pages={Math.ceil(total / PER)} makeHref={(p) => `/admin/customers?${new URLSearchParams({ ...(q && { q }), ...(sp.role && { role: sp.role }), page: String(p) })}`} />
     </div>

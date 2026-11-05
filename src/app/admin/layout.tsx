@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { AdminShell } from "@/components/admin/shell";
+import "./admin.css";
 
 export const metadata: Metadata = { title: { default: "Admin", template: "%s · Admin" }, robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -20,7 +21,7 @@ const ADMIN_VARS = {
   "--paper-ink": "#1d1b18",
   "--sale": "#b3261e",
   "--radius": "8px",
-  "--btn-radius": "6px",
+  "--btn-radius": "8px",
   "--font-body": "var(--font-inter)",
   "--font-display": "var(--font-inter)",
   "--heading-weight": "600",

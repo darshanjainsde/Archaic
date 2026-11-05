@@ -34,8 +34,8 @@ export default async function Coupons({ searchParams }: { searchParams: Promise<
                     <td className="whitespace-nowrap">{x.expiresAt ? formatDate(x.expiresAt) : "—"}</td>
                     <td>{state(x)}</td>
                     <td className="whitespace-nowrap text-right text-[13px]">
-                      <Link className="rounded px-2 py-1 hover:bg-black/5" href={`/admin/coupons?edit=${x.id}`}>Edit</Link>
-                      <ConfirmButton className="rounded px-2 py-1 text-sale hover:bg-red-50" confirmText={`Delete ${x.code}?`} action={deleteCoupon.bind(null, x.id)}>Delete</ConfirmButton>
+                      <Link className="text-btn" href={`/admin/coupons?edit=${x.id}`}>Edit</Link>
+                      <ConfirmButton className="text-btn is-danger" danger confirmText={`Delete ${x.code}?`} action={deleteCoupon.bind(null, x.id)}>Delete</ConfirmButton>
                     </td>
                   </tr>
                 ))}
@@ -43,7 +43,7 @@ export default async function Coupons({ searchParams }: { searchParams: Promise<
             </Table>
           )}
         </div>
-        <Panel title={c ? `Edit ${c.code}` : "New coupon"} className="order-1 lg:order-2 lg:self-start" actions={c && <Link href="/admin/coupons" className="text-[13px] underline">New instead</Link>}>
+        <Panel title={c ? `Edit ${c.code}` : "New coupon"} className="order-1 lg:order-2 lg:self-start" actions={c && <Link href="/admin/coupons" className="text-btn -mr-3 -mt-3">New instead</Link>}>
           <ActionForm key={c?.id ?? "new"} action={saveCoupon} className="space-y-4" resetOnSuccess={!c}>
             <input type="hidden" name="id" value={c?.id ?? ""} />
             <div><label className="label" htmlFor="code">Code</label><input id="code" name="code" className="field uppercase" defaultValue={c?.code} placeholder="DIWALI15" required /></div>
@@ -59,7 +59,7 @@ export default async function Coupons({ searchParams }: { searchParams: Promise<
               <div><label className="label" htmlFor="en">Ends</label><input id="en" name="expiresAt" type="datetime-local" className="field" defaultValue={toLocalInput(c?.expiresAt)} /></div>
             </div>
             <p className="hint">Dates are India time. Leave empty for no limit.</p>
-            <label className="flex items-center gap-2 text-[14px]"><input type="checkbox" name="isActive" defaultChecked={c?.isActive ?? true} className="h-5 w-5 accent-[var(--accent)]" /> Active</label>
+            <label className="check-row"><input type="checkbox" name="isActive" defaultChecked={c?.isActive ?? true} /><span className="text-[15px]">Active</span></label>
             <SubmitButton className="w-full" pendingText="Saving…">{c ? "Save coupon" : "Create coupon"}</SubmitButton>
           </ActionForm>
         </Panel>

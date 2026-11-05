@@ -27,8 +27,17 @@ export type QuotedLine = {
   maxQty: number;
 };
 
+export type Milestone = { kind: "shipping" | "gift"; label: string; threshold: number; reached: boolean };
 export type Quote = {
   lines: QuotedLine[];
+  /** Free gifts unlocked by the order value; priced ₹0 and added to the order on the server. Not part of `lines`. */
+  giftLines: QuotedLine[];
+  /** Free-delivery and gift thresholds, ascending, for the progress bar */
+  milestones: Milestone[];
+  /** The next milestone not reached yet, with how much more is needed */
+  next: { label: string; remaining: number; kind: "shipping" | "gift" } | null;
+  /** Order value the milestones are measured against (after discounts) */
+  progressValue: number;
   subtotal: number;
   memberDiscount: number;
   memberTier: string | null;
@@ -154,7 +163,26 @@ export async function quoteCart(input: {
   const codFee = input.paymentMethod === "COD" && valid.length ? s.commerce.codFee : 0;
   const total = afterDiscount + shipping + giftWrap + codFee;
 
-  return { lines, subtotal, memberDiscount, memberTier, memberPct, discount, couponCode, couponError, shipping, giftWrap, codFee, total, freeShippingRemaining, hasErrors: lines.some((l) => l.error) };
+  // ---- milestones: free delivery + free gifts ----
+  const milestones: Milestone[] = [];
+  if (threshold > 0 && s.commerce.flatShipping > 0) milestones.push({ kind: "shipping", label: "Free delivery", threshold, reached: afterDiscount >= threshold });
+  const gifts = (s.commerce.freeGifts ?? []).filter((g) => g.enabled && g.productSlug && g.threshold > 0).sort((a, b) => a.threshold - b.threshold);
+  const giftProducts = gifts.length && valid.length
+    ? await db.product.findMany({ where: { slug: { in: gifts.map((g) => g.productSlug) }, status: "ACTIVE" }, include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } } })
+    : [];
+  const giftLines: QuotedLine[] = [];
+  for (const g of gifts) {
+    const gp = giftProducts.find((x) => x.slug === g.productSlug);
+    if (!gp || (gp.trackInventory && gp.stock <= 0)) continue; // out of stock gifts are simply not offered
+    const reached = afterDiscount >= g.threshold;
+    milestones.push({ kind: "gift", label: g.label || `Free ${gp.name}`, threshold: g.threshold, reached });
+    if (reached) giftLines.push({ key: `gift:${gp.id}`, productId: gp.id, name: `${gp.name} (free gift)`, slug: gp.slug, image: gp.images[0]?.url ?? null, unitPrice: 0, quantity: 1, lineTotal: 0, selections: [], personalization: null, error: null, maxQty: 1 });
+  }
+  milestones.sort((a, b) => a.threshold - b.threshold);
+  const upcoming = valid.length ? milestones.find((m) => !m.reached) : undefined;
+  const next = upcoming ? { label: upcoming.label, remaining: upcoming.threshold - afterDiscount, kind: upcoming.kind } : null;
+
+  return { lines, giftLines, milestones, next, progressValue: afterDiscount, subtotal, memberDiscount, memberTier, memberPct, discount, couponCode, couponError, shipping, giftWrap, codFee, total, freeShippingRemaining, hasErrors: lines.some((l) => l.error) };
 }
 
 export async function nextOrderNumber(tx: Prisma.TransactionClient) {

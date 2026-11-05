@@ -12,6 +12,7 @@ import { addressSchema, fieldErrors } from "@/lib/address";
 import { placeOrder } from "@/actions/checkout";
 import { useQuote } from "./use-quote";
 import { SummaryRows } from "./summary";
+import { RewardsBar, UpsellRail } from "./rewards";
 import { CouponForm } from "./coupon-form";
 import { AddressFields, EMPTY_ADDRESS, type AddressForm } from "./address-fields";
 import { launchPayment } from "./launch-payment";
@@ -61,6 +62,18 @@ export function CheckoutView(p: {
       if (alt) setMethod(alt);
     }
   }, [codBlocked, method, p.methods]);
+
+  // Phones: the order summary sits under a long form, so keep the total visible with a shortcut down to it.
+  const payRef = useRef<HTMLButtonElement>(null);
+  const [dock, setDock] = useState(false);
+  const hasLines = c.lines.length > 0;
+  useEffect(() => {
+    const el = payRef.current;
+    if (!mounted || !hasLines || !el || typeof IntersectionObserver === "undefined") return;
+    const io = new IntersectionObserver(([e]) => setDock(!e.isIntersecting && e.boundingClientRect.top > 0), { threshold: 0 });
+    io.observe(el);
+    return () => io.disconnect();
+  }, [mounted, hasLines]);
 
   if (!mounted) return <div className="skeleton h-96 w-full" aria-label="Loading checkout" />;
   if (c.lines.length === 0) return <EmptyState title="Your bag is empty" text="Add something to your bag before checking out." href="/shop" cta="Browse candles" />;
@@ -163,7 +176,7 @@ export function CheckoutView(p: {
           {addressId === "new" && (
             <div className="mt-5 space-y-4">
               <AddressFields value={addr} onChange={setAddr} errors={errors} />
-              <label className="flex items-center gap-3 text-[16px]">
+              <label className="flex min-h-11 cursor-pointer items-center gap-3 text-[16px]">
                 <input type="checkbox" className="h-5 w-5 accent-[var(--accent)]" checked={saveAddress} onChange={(e) => setSaveAddress(e.target.checked)} />
                 Save this address for next time
               </label>
@@ -220,7 +233,7 @@ export function CheckoutView(p: {
         </section>
       </div>
 
-      <aside className="bg-paper p-6 text-paper-ink lg:sticky lg:top-24" style={paperVars} aria-label="Order summary">
+      <aside id="order-summary" className="scroll-mt-24 bg-paper p-6 text-paper-ink lg:sticky lg:top-24" style={paperVars} aria-label="Order summary">
         <h2 className="mb-4 flex items-center gap-2 text-3xl">Your order {loading && <Loader2 size={18} className="animate-spin" aria-label="Updating" />}</h2>
         <ul className="mb-5 space-y-3">
           {c.lines.map((l, i) => {
@@ -239,15 +252,31 @@ export function CheckoutView(p: {
           })}
         </ul>
         <CouponForm code={c.couponCode} error={quote?.couponError ?? null} applied={Boolean(quote?.couponCode)} onApply={(code) => cart.setCoupon(code)} />
+        {quote && quote.milestones.length > 0 && <RewardsBar q={quote} className="mt-5" />}
+        {quote && quote.next && <UpsellRail q={quote} inBag={c.lines.map((l) => l.productId)} place="checkout" className="mt-6" />}
         <div className="mt-5">{quote ? <SummaryRows q={quote} showCod /> : <div className="skeleton h-32" />}</div>
         {quote?.hasErrors && <p className="error-text mt-3" role="alert">Some items need attention. <Link href="/cart" className="underline">Review your bag</Link></p>}
         {formError && <p className="error-text mt-3 text-[15px]" role="alert">{formError}</p>}
-        <button type="button" onClick={submit} disabled={disabled} aria-busy={pending || paying} className="btn mt-6 w-full" style={{ background: "var(--paper-ink)", color: "var(--paper)" }}>
+        <button ref={payRef} type="button" onClick={submit} disabled={disabled} aria-busy={pending || paying} className="btn mt-6 w-full" style={{ background: "var(--paper-ink)", color: "var(--paper)" }}>
           {pending || paying ? <Loader2 size={16} className="animate-spin" aria-hidden /> : <Lock size={16} aria-hidden />}
           {paying ? "Opening payment…" : pending ? "Placing order…" : method === "COD" ? `Place order · ${quote ? formatMoney(quote.total) : ""}` : `Pay ${quote ? formatMoney(quote.total) : ""}`}
         </button>
         <p className="mt-3 text-center text-[14px] opacity-80">By placing this order you agree to our <Link href="/pages/terms" className="underline">terms</Link>.</p>
       </aside>
+
+      <div
+        className={`dock-bar fixed inset-x-0 bottom-0 z-30 bg-paper px-4 pt-3 text-paper-ink shadow-[0_-8px_24px_rgb(0_0_0/0.18)] lg:hidden ${dock ? "visible translate-y-0" : "invisible translate-y-full"}`}
+        style={{ ...paperVars, borderRadius: 0, paddingBottom: "calc(12px + var(--safe-bottom))" }}
+        aria-hidden={!dock}
+      >
+        <div className="flex items-center gap-3">
+          <div className="min-w-0 flex-1">
+            <p className="text-[14px] opacity-80">Total · {c.count} item{c.count === 1 ? "" : "s"}</p>
+            <p className="text-[18px] font-semibold tabular-nums">{quote ? formatMoney(quote.total) : formatMoney(c.estimate)}</p>
+          </div>
+          <a href="#order-summary" tabIndex={dock ? 0 : -1} className="btn shrink-0" style={{ background: "var(--paper-ink)", color: "var(--paper)" }}>Review &amp; pay</a>
+        </div>
+      </div>
     </div>
   );
 }

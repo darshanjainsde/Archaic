@@ -53,6 +53,8 @@
   button, [role="button"] { cursor: pointer; }
   button:disabled { cursor: not-allowed; }
   input, select, textarea { font-size: 16px; } /* prevents iOS zoom on focus */
+  input[type="checkbox"], input[type="radio"] { flex-shrink: 0; } /* a long label beside it must not squash the box */
+  a, button, summary, label, [role="button"] { touch-action: manipulation; }
   img { max-width: 100%; }
   [hidden] { display: none !important; }
 }
@@ -112,15 +114,42 @@
   .prose-store a { text-decoration: underline; text-underline-offset: 3px; }
   .prose-store strong { font-weight: 700; }
 
-  .skeleton { background: color-mix(in srgb, var(--ink) 9%, transparent); animation: pulse 1.4s ease-in-out infinite; }
+  /* Loading placeholder: a soft sheen sweeps across; static under reduced motion. */
+  .skeleton {
+    background-color: color-mix(in srgb, var(--ink) 9%, transparent);
+    background-image: linear-gradient(100deg, transparent 30%, color-mix(in srgb, var(--ink) 7%, transparent) 50%, transparent 70%);
+    background-size: 220% 100%; background-repeat: no-repeat;
+    animation: shimmer 1.6s ease-in-out infinite;
+  }
+  @keyframes shimmer { from { background-position: 130% 0; } to { background-position: -30% 0; } }
   @keyframes pulse { 50% { opacity: .55; } }
 
   .rise { animation: rise .6s cubic-bezier(.2,.7,.2,1) both; }
   .rise-1 { animation-delay: .07s; } .rise-2 { animation-delay: .14s; } .rise-3 { animation-delay: .21s; }
   @keyframes rise { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
-  @media (prefers-reduced-motion: reduce) { .rise { animation: none; } html { scroll-behavior: auto; } }
+  @media (prefers-reduced-motion: reduce) { .rise, .skeleton { animation: none; } html { scroll-behavior: auto; } }
+
+  /* Reveal on scroll, below the fold only (never on the hero / LCP). Pure CSS scroll-driven animation:
+     browsers without animation-timeline simply show the content, so nothing can get stuck invisible. */
+  @supports (animation-timeline: view()) {
+    @media (prefers-reduced-motion: no-preference) {
+      .reveal { animation: reveal-in linear both; animation-timeline: view(); animation-range: entry 0% entry 55%; }
+    }
+  }
+  @keyframes reveal-in { from { opacity: 0; translate: 0 28px; } to { opacity: 1; translate: none; } }
+  @media print { .reveal { animation: none; } }
+
+  /* Bag badge pops when something is added. */
+  .bag-bump { animation: bag-bump .5s cubic-bezier(.3,1.6,.5,1); }
+  @keyframes bag-bump { 0% { transform: scale(1); } 35% { transform: scale(1.45); } 100% { transform: scale(1); } }
+  @media (prefers-reduced-motion: reduce) { .bag-bump { animation: none; } }
+
+  /* Small text links get a finger-sized hit area without moving the layout. */
+  .tap-y { display: inline-flex; align-items: center; min-height: 44px; }
 
   .pb-safe { padding-bottom: calc(var(--safe-bottom) + 0px); }
   .mobile-tabbar-space { padding-bottom: calc(64px + var(--safe-bottom)); }
+  /* Checkout hides the tab bar, so drop the space reserved for it. */
+  .mobile-tabbar-space:not(:has(> nav[aria-label="App"])) { padding-bottom: var(--safe-bottom); }
   @media (min-width: 1024px) { .mobile-tabbar-space { padding-bottom: 0; } }
 }

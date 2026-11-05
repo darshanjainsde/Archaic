@@ -11,7 +11,7 @@ export function Hero({ slides, storeName, tagline }: { slides: HeroSlide[]; stor
       <div className={many ? "snap-row no-scrollbar auto-cols-[100%]" : ""}>
         {slides.map((s, i) => (
           <div key={i} className="container-x grid items-stretch gap-4 pb-10 pt-4 md:grid-cols-12 md:gap-6 md:pb-16 md:pt-8" id={`hero-${i}`}>
-            <div className="label-panel rise order-2 flex flex-col justify-between gap-8 p-6 md:order-2 md:col-span-12 md:p-12 lg:order-1 lg:col-span-6 lg:min-h-[640px]">
+            <div className="label-panel order-2 flex flex-col justify-between gap-8 p-6 md:order-2 md:col-span-12 md:p-12 lg:order-1 lg:col-span-6 lg:min-h-[640px]">
               <div className="flex items-baseline justify-between gap-4 text-[15px]">
                 <span className="font-display text-[19px]">{storeName}</span>
                               </div>
@@ -30,21 +30,21 @@ export function Hero({ slides, storeName, tagline }: { slides: HeroSlide[]; stor
                     {s.ctaLabel}
                   </Link>
                 )}
-                <Link href="/shop" className="text-[15px] font-semibold underline underline-offset-4">Browse everything</Link>
+                <Link href="/shop" className="tap-y text-[15px] font-semibold underline underline-offset-4">Browse everything</Link>
               </div>
             </div>
             <div className="relative order-1 aspect-[5/4] overflow-hidden bg-surface md:order-1 md:col-span-12 md:aspect-[16/9] lg:order-2 lg:col-span-6 lg:aspect-auto" style={{ borderRadius: "var(--radius)" }}>
               {s.image ? (
-                <Img src={s.image} alt="" fill priority={i === 0} sizes="(min-width:768px) 55vw, 100vw" className="rise rise-1 object-cover" />
+                <Img src={s.image} alt="" fill priority={i === 0} sizes="(min-width:768px) 55vw, 100vw" className="object-cover" />
               ) : null}
             </div>
           </div>
         ))}
       </div>
       {many && (
-        <div className="container-x -mt-6 flex gap-2 pb-6" aria-label="Slides">
+        <div className="container-x -mt-6 flex gap-1 pb-6" aria-label="Slides">
           {slides.map((_, i) => (
-            <a key={i} href={`#hero-${i}`} aria-label={`Slide ${i + 1}`} className="h-2.5 w-2.5 rounded-full bg-ink/40 hover:bg-ink" />
+            <a key={i} href={`#hero-${i}`} aria-label={`Slide ${i + 1}`} className="grid h-6 w-6 place-items-center before:block before:h-2.5 before:w-2.5 before:rounded-full before:bg-ink/40 before:content-[''] hover:before:bg-ink" />
           ))}
         </div>
       )}

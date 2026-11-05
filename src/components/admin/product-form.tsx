@@ -1,16 +1,17 @@
 "use client";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Plus, Trash2 } from "lucide-react";
+import { ExternalLink, Plus, Trash2 } from "lucide-react";
 import { saveProduct, checkSlug, type ProductInput } from "@/actions/admin/products";
 import { paiseToRupeesString, rupeesToPaise, formatMoney } from "@/lib/money";
 import { slugify, uid } from "@/lib/utils";
-import { renderMarkdown } from "@/lib/markdown";
 import type { OptionGroup, Personalization, Spec } from "@/lib/types";
 import { Panel, Toggle } from "./ui";
 import { ImagesEditor, type EditableImage } from "./images-editor";
 import { OptionBuilder, signedRupees, type EditGroup } from "./option-builder";
+import { MarkdownEditor } from "./markdown-field";
+import { SaveBar } from "./save-bar";
 
 export type ProductFormInitial = {
   id: string | null;
@@ -21,10 +22,18 @@ export type ProductFormInitial = {
 };
 
 function toEditGroups(groups: OptionGroup[]): EditGroup[] {
-  return groups.map((g) => ({ key: uid(), id: g.id, name: g.name, display: g.display, required: g.required, values: g.values.map((v) => ({ key: uid(), id: v.id, label: v.label, hex: v.hex ?? "#d9c3a0", priceDelta: paiseToRupeesString(v.priceDelta) || "0", image: v.image ?? "", available: v.available })) }));
+  return groups.map((g) => ({ key: uid(), id: g.id, name: g.name, display: g.display, required: g.required, values: g.values.map((v) => ({ key: uid(), id: v.id, label: v.label, note: v.note ?? "", hex: v.hex ?? "#d9c3a0", priceDelta: paiseToRupeesString(v.priceDelta) || "0", image: v.image ?? "", available: v.available })) }));
 }
 
-export function ProductForm({ initial, categories }: { initial: ProductFormInitial; categories: { id: string; name: string }[] }) {
+type FormProps = { initial: ProductFormInitial; categories: { id: string; name: string; parentName: string | null }[] };
+
+/** Remounting with a new key throws away unsaved edits ("Discard") and picks up the freshly saved product. */
+export function ProductForm(props: FormProps) {
+  const [k, setK] = useState(0);
+  return <Form key={k} {...props} onDiscard={() => setK((x) => x + 1)} />;
+}
+
+function Form({ initial, categories, onDiscard }: FormProps & { onDiscard: () => void }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [dirty, setDirty] = useState(false);
@@ -42,7 +51,6 @@ export function ProductForm({ initial, categories }: { initial: ProductFormIniti
     enabled: initial.personalization?.enabled ?? false, label: initial.personalization?.label ?? "Name or message on the label",
     maxLength: String(initial.personalization?.maxLength ?? 30), price: paiseToRupeesString(initial.personalization?.price ?? 0) || "0", required: initial.personalization?.required ?? false,
   }));
-  const [preview, setPreview] = useState(false);
   const [slugMsg, setSlugMsg] = useState<string | null>(null);
 
   const set = <K extends keyof typeof f>(k: K, v: (typeof f)[K]) => { setDirty(true); setF((s) => ({ ...s, [k]: v })); };
@@ -57,7 +65,6 @@ export function ProductForm({ initial, categories }: { initial: ProductFormIniti
 
   const effectiveSlug = f.slugTouched ? f.slug : slugify(f.name);
   const pricePaise = rupeesToPaise(f.price);
-  const descHtml = useMemo(() => (preview ? renderMarkdown(f.description) : ""), [preview, f.description]);
 
   async function verifySlug() {
     if (!effectiveSlug) return;
@@ -80,15 +87,22 @@ export function ProductForm({ initial, categories }: { initial: ProductFormIniti
       for (const v of g.values) {
         const d = signedRupees(v.priceDelta);
         if (d === null) { errs.options = `Price change “${v.priceDelta}” in ${g.name || "an option"} is not a number`; break; }
-        if (g.display === "swatch" && !/^#[0-9a-fA-F]{6}$/.test(v.hex)) { errs.options = `Colour for “${v.label}” must be a hex like #c9a27e`; break; }
-        values.push({ id: v.id, label: v.label.trim(), hex: g.display === "swatch" ? v.hex : null, priceDelta: d, image: v.image || null, available: v.available });
+        if ((g.display === "swatch" || g.display === "candle") && !/^#[0-9a-fA-F]{6}$/.test(v.hex)) { errs.options = `Colour for “${v.label}” must be a hex like #c9a27e`; break; }
+        values.push({ id: v.id, label: v.label.trim(), note: v.note?.trim() || null, hex: g.display === "swatch" || g.display === "candle" ? v.hex : null, priceDelta: d, image: v.image || null, available: v.available });
       }
       options.push({ id: g.id, name: g.name.trim(), display: g.display, required: g.required, values });
     }
     const persPrice = rupeesToPaise(pers.price || "0");
     if (pers.enabled && persPrice === null) errs.personalization = "Enter a valid personalisation price";
     setErrors(errs);
-    if (Object.keys(errs).length) { toast.error(Object.values(errs)[0]); return; }
+    if (Object.keys(errs).length) {
+      toast.error(Object.keys(errs).length === 1 ? Object.values(errs)[0] : `Fix ${Object.keys(errs).length} things marked in red`);
+      const first = ["name", "price", "compareAtPrice", "stock", "options", "personalization"].find((k) => errs[k]);
+      const el = first ? document.getElementById(({ options: "options-panel", personalization: "pers-panel" } as Record<string, string>)[first] ?? first) : null;
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (el instanceof HTMLInputElement) el.focus({ preventScroll: true });
+      return;
+    }
 
     const input: ProductInput = {
       name: f.name, slug: effectiveSlug, shortDescription: f.shortDescription, description: f.description, price: pricePaise!, compareAtPrice: compare,
@@ -121,33 +135,23 @@ export function ProductForm({ initial, categories }: { initial: ProductFormIniti
           <div className="space-y-4">
             <div>
               <label className="label" htmlFor="name">Name</label>
-              <input id="name" className="field" value={f.name} aria-invalid={!!errors.name} onChange={(e) => set("name", e.target.value)} onBlur={verifySlug} required />
+              <input id="name" className="field" autoComplete="off" placeholder="e.g. Oud & Amber jar candle" value={f.name} aria-invalid={!!errors.name} onChange={(e) => set("name", e.target.value)} onBlur={verifySlug} required />
               {err("name")}
             </div>
             <div>
-              <label className="label" htmlFor="slug">URL</label>
-              <div className="flex items-center gap-1 text-[14px]">
-                <span className="text-muted">/product/</span>
-                <input id="slug" className="field" value={effectiveSlug} onChange={(e) => { setDirty(true); setF((s) => ({ ...s, slug: slugify(e.target.value), slugTouched: true })); }} onBlur={verifySlug} />
+              <label className="label" htmlFor="slug">Web address</label>
+              <div className="flex items-center rounded-lg border border-black/[.18] bg-white focus-within:border-ink focus-within:ring-1 focus-within:ring-ink">
+                <span className="shrink-0 pl-3 text-[16px] text-muted">/product/</span>
+                <input id="slug" className="min-h-12 w-full min-w-0 bg-transparent py-3 pr-3 text-[16px] outline-none" autoComplete="off" spellCheck={false} value={effectiveSlug} onChange={(e) => { setDirty(true); setF((s) => ({ ...s, slug: slugify(e.target.value), slugTouched: true })); }} onBlur={verifySlug} />
               </div>
-              {slugMsg && <p className="hint">{slugMsg}</p>}
+              <p className="hint">{slugMsg ?? "Made from the name. Change it only before sharing the link."}</p>
             </div>
             <div>
               <label className="label" htmlFor="short">Short description</label>
-              <input id="short" className="field" maxLength={300} value={f.shortDescription} onChange={(e) => set("shortDescription", e.target.value)} placeholder="One line shown under the name" />
+              <input id="short" className="field" maxLength={300} value={f.shortDescription} onChange={(e) => set("shortDescription", e.target.value)} placeholder="e.g. Smoky resin and warm honey, 40 hours" autoComplete="off" />
+              <p className="hint">One line shown under the name.</p>
             </div>
-            <div>
-              <div className="mb-1.5 flex items-center justify-between">
-                <label className="label !mb-0" htmlFor="desc">Description</label>
-                <button type="button" className="text-[13px] underline" onClick={() => setPreview((p) => !p)}>{preview ? "Edit" : "Preview"}</button>
-              </div>
-              {preview ? (
-                <div className="prose-store min-h-[200px] rounded-md border border-black/10 p-3 !text-[15px]" dangerouslySetInnerHTML={{ __html: descHtml || "<p>Nothing yet.</p>" }} />
-              ) : (
-                <textarea id="desc" rows={10} className="field font-[inherit]" value={f.description} onChange={(e) => set("description", e.target.value)} aria-describedby="desc-hint" />
-              )}
-              <p id="desc-hint" className="hint">Formatting: ## Heading, **bold**, *italic*, - bullet list, [link](https://…)</p>
-            </div>
+            <MarkdownEditor id="desc" label="Description" value={f.description} onChange={(v) => set("description", v)} rows={10} hint="Use the buttons for headings, bold, lists, links and photos." />
           </div>
         </Panel>
 
@@ -159,12 +163,13 @@ export function ProductForm({ initial, categories }: { initial: ProductFormIniti
           <div className="grid gap-4 sm:grid-cols-2">
             <div>
               <label className="label" htmlFor="price">Price (₹)</label>
-              <input id="price" inputMode="decimal" className="field" value={f.price} aria-invalid={!!errors.price} onChange={(e) => set("price", e.target.value)} placeholder="1299" />
+              <input id="price" inputMode="decimal" className="field" value={f.price} aria-invalid={!!errors.price} onChange={(e) => set("price", e.target.value)} placeholder="e.g. 1299" autoComplete="off" />
               {err("price")}
             </div>
             <div>
               <label className="label" htmlFor="compare">Compare-at price (₹)</label>
-              <input id="compare" inputMode="decimal" className="field" value={f.compareAtPrice} aria-invalid={!!errors.compareAtPrice} onChange={(e) => set("compareAtPrice", e.target.value)} placeholder="Optional, shown struck through" />
+              <input id="compare" inputMode="decimal" className="field" value={f.compareAtPrice} aria-invalid={!!errors.compareAtPrice} onChange={(e) => set("compareAtPrice", e.target.value)} placeholder="e.g. 1499" autoComplete="off" />
+              <p className="hint">Optional. The old price, shown struck through.</p>
               {err("compareAtPrice")}
             </div>
             <div>
@@ -180,12 +185,12 @@ export function ProductForm({ initial, categories }: { initial: ProductFormIniti
           <div className="mt-3"><Toggle label="Track inventory" hint="When off, the product never sells out (good for made-to-order)." checked={f.trackInventory} onChange={(v) => set("trackInventory", v)} /></div>
         </Panel>
 
-        <Panel title="Options customers choose" description="Scent, colour, label theme, size… Each value can change the price and the photo shown.">
+        <Panel id="options-panel" title="Options customers choose" description="Scent, colour, label theme, size… Each value can change the price and the photo shown.">
           <OptionBuilder groups={groups} onChange={wrap(setGroups)} productImages={images.map((i) => i.url)} />
           {err("options")}
         </Panel>
 
-        <Panel title="Personalisation">
+        <Panel id="pers-panel" title="Personalisation">
           <Toggle label="Let customers add their own text" hint="E.g. a name on the label or a message for the card." checked={pers.enabled} onChange={(v) => { setDirty(true); setPers((p) => ({ ...p, enabled: v })); }} />
           {pers.enabled && (
             <div className="mt-3 grid gap-4 sm:grid-cols-3">
@@ -210,13 +215,15 @@ export function ProductForm({ initial, categories }: { initial: ProductFormIniti
         <Panel title="Specifications" description="Shown as a list on the product page, e.g. Burn time — 40 hours.">
           <div className="space-y-2">
             {specs.map((s, i) => (
-              <div key={s.key} className="flex gap-2">
-                <input aria-label="Specification name" className="field !min-h-[40px] !py-2" placeholder="Burn time" value={s.label} onChange={(e) => { setDirty(true); setSpecs(specs.map((x, k) => (k === i ? { ...x, label: e.target.value } : x))); }} />
-                <input aria-label="Specification value" className="field !min-h-[40px] !py-2" placeholder="40 hours" value={s.value} onChange={(e) => { setDirty(true); setSpecs(specs.map((x, k) => (k === i ? { ...x, value: e.target.value } : x))); }} />
-                <button type="button" aria-label="Remove specification" className="rounded p-2 text-sale hover:bg-red-50" onClick={() => { setDirty(true); setSpecs(specs.filter((_, k) => k !== i)); }}><Trash2 size={16} /></button>
+              <div key={s.key} className="flex items-start gap-2">
+                <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
+                <input aria-label={`Specification ${i + 1} name`} className="field" autoComplete="off" placeholder="e.g. Burn time" value={s.label} onChange={(e) => { setDirty(true); setSpecs(specs.map((x, k) => (k === i ? { ...x, label: e.target.value } : x))); }} />
+                <input aria-label={`Specification ${i + 1} value`} className="field" autoComplete="off" placeholder="e.g. 40 hours" value={s.value} onChange={(e) => { setDirty(true); setSpecs(specs.map((x, k) => (k === i ? { ...x, value: e.target.value } : x))); }} />
+                </div>
+                <button type="button" aria-label={`Remove specification ${i + 1}`} className="icon-btn is-danger mt-0.5" onClick={() => { setDirty(true); setSpecs(specs.filter((_, k) => k !== i)); }}><Trash2 size={20} aria-hidden /></button>
               </div>
             ))}
-            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSpecs([...specs, { key: uid(), label: "", value: "" }])}><Plus size={15} /> Add specification</button>
+            <button type="button" className="btn btn-ghost btn-sm" onClick={() => setSpecs([...specs, { key: uid(), label: "", value: "" }])}><Plus size={18} aria-hidden /> Add specification</button>
           </div>
         </Panel>
 
@@ -245,10 +252,9 @@ export function ProductForm({ initial, categories }: { initial: ProductFormIniti
             </div>
             <Toggle label="Featured" hint="Shown in “featured” homepage sections" checked={f.featured} onChange={(v) => set("featured", v)} />
             <Toggle label="Giftable" hint="Allow gift wrap and message" checked={f.isGiftable} onChange={(v) => set("isGiftable", v)} />
-            {pricePaise !== null && <p className="text-[13px] text-muted">Base price {formatMoney(pricePaise)}</p>}
+            {pricePaise !== null && <p className="text-[14px] text-muted">Base price {formatMoney(pricePaise)}</p>}
             <button type="submit" className="btn btn-primary w-full" disabled={pending}>{pending ? "Saving…" : initial.id ? "Save changes" : "Create product"}</button>
-            {initial.id && f.status === "ACTIVE" && <a className="block text-center text-[14px] underline" href={`/product/${effectiveSlug}`} target="_blank" rel="noreferrer">View in store</a>}
-            {dirty && <p className="text-center text-[13px] text-muted">Unsaved changes</p>}
+            {initial.id && f.status === "ACTIVE" && <a className="btn btn-ghost w-full" href={`/product/${effectiveSlug}`} target="_blank" rel="noreferrer"><ExternalLink size={18} aria-hidden />View in store</a>}
           </div>
         </Panel>
         <Panel title="Organise">
@@ -256,20 +262,33 @@ export function ProductForm({ initial, categories }: { initial: ProductFormIniti
             <div>
               <label className="label" htmlFor="cat">Category</label>
               <select id="cat" className="field" value={f.categoryId} onChange={(e) => set("categoryId", e.target.value)}>
-                <option value="">No category</option>{categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                <option value="">No category</option>
+                {categories.filter((c) => !c.parentName).map((c) => {
+                  const kids = categories.filter((k) => k.parentName === c.name);
+                  return kids.length ? (
+                    <optgroup key={c.id} label={c.name}>
+                      <option value={c.id}>{c.name} (all)</option>
+                      {kids.map((k) => <option key={k.id} value={k.id}>{k.name}</option>)}
+                    </optgroup>
+                  ) : <option key={c.id} value={c.id}>{c.name}</option>;
+                })}
               </select>
+              <p className="hint">Pick the most specific one. A product in a sub-category also shows in its parent. <a className="underline underline-offset-4" href="/admin/categories" target="_blank" rel="noreferrer">Manage categories</a></p>
             </div>
             <div>
               <label className="label" htmlFor="badge">Badge</label>
-              <input id="badge" className="field" maxLength={30} placeholder="e.g. Bestseller, New" value={f.badge} onChange={(e) => set("badge", e.target.value)} />
+              <input id="badge" className="field" autoComplete="off" maxLength={30} placeholder="e.g. Bestseller, New" value={f.badge} onChange={(e) => set("badge", e.target.value)} />
             </div>
             <div>
               <label className="label" htmlFor="tags">Tags</label>
-              <input id="tags" className="field" placeholder="soy, jar, festive" value={f.tags} onChange={(e) => set("tags", e.target.value)} aria-describedby="tags-hint" />
+              <input id="tags" className="field" autoComplete="off" placeholder="e.g. soy, jar, festive" value={f.tags} onChange={(e) => set("tags", e.target.value)} aria-describedby="tags-hint" />
               <p id="tags-hint" className="hint">Separate with commas. Used by search.</p>
             </div>
           </div>
         </Panel>
+      </div>
+      <div className="lg:col-span-2">
+        <SaveBar dirty={dirty} pending={pending} submit onDiscard={onDiscard} saveLabel={initial.id ? "Save changes" : "Create product"} />
       </div>
     </form>
   );

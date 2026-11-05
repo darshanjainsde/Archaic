@@ -27,7 +27,7 @@ export function MembershipCard({ programme, current, next, progress, remaining, 
       {!compact && current.perks.length > 0 && (
         <ul className="mt-4 list-disc space-y-1 pl-5 text-[16px]">{current.perks.map((p) => <li key={p}>{p}</li>)}</ul>
       )}
-      {compact && <Link href="/account/membership" className="mt-4 inline-block text-[16px] font-semibold underline">See all tiers and perks</Link>}
+      {compact && <Link href="/account/membership" className="tap-y mt-2 text-[16px] font-semibold underline">See all tiers and perks</Link>}
     </section>
   );
 }

@@ -1,6 +1,7 @@
 "use server";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { touchCategories } from "@/lib/categories";
 import { db } from "@/lib/db";
 import { assertAdmin } from "@/lib/auth";
 import { slugify, uid } from "@/lib/utils";
@@ -10,6 +11,7 @@ const valueSchema = z.object({
   id: z.string().optional(),
   label: z.string().trim().min(1, "Every option value needs a label").max(80),
   hex: z.string().regex(/^#[0-9a-fA-F]{6}$/).nullish(),
+  note: z.string().max(80).nullish(),
   priceDelta: z.number().int().min(-10_000_000).max(10_000_000),
   image: z.string().max(1000).nullish(),
   available: z.boolean(),
@@ -17,7 +19,7 @@ const valueSchema = z.object({
 const groupSchema = z.object({
   id: z.string().optional(),
   name: z.string().trim().min(1, "Every option group needs a name").max(60),
-  display: z.enum(["swatch", "button", "dropdown"]),
+  display: z.enum(["swatch", "button", "dropdown", "candle"]),
   required: z.boolean(),
   values: z.array(valueSchema).min(1, "Each option group needs at least one value").max(60),
 });
@@ -94,7 +96,7 @@ export async function saveProduct(id: string | null, input: ProductInput): Promi
       let vid = slugify(v.id || v.label) || uid("v");
       while (valueIds.has(vid)) vid = `${vid}-${uid().slice(0, 4)}`;
       valueIds.add(vid);
-      return { id: vid, label: v.label, hex: g.display === "swatch" ? v.hex ?? "#cccccc" : v.hex ?? null, priceDelta: v.priceDelta, image: v.image || null, available: v.available };
+      return { id: vid, label: v.label, hex: g.display === "swatch" ? v.hex ?? "#cccccc" : v.hex ?? null, priceDelta: v.priceDelta, image: v.image || null, available: v.available, ...(v.note ? { note: v.note.trim().slice(0, 80) } : {}) };
     });
     return { id: gid, name: g.name, display: g.display, required: g.required, values };
   });
@@ -146,6 +148,7 @@ export async function saveProduct(id: string | null, input: ProductInput): Promi
     productId = created.id;
   }
   revalidatePath("/", "layout");
+  touchCategories();
   return { ok: true, data: { id: productId }, message: "Product saved" };
 }
 
@@ -170,6 +173,7 @@ export async function setProductStatus(id: string, status: "DRAFT" | "ACTIVE" | 
   await assertAdmin();
   await db.product.update({ where: { id }, data: { status } });
   revalidatePath("/", "layout");
+  touchCategories();
   return { ok: true };
 }
 
@@ -179,9 +183,11 @@ export async function deleteProduct(id: string): Promise<ActionResult> {
   if (used > 0) {
     await db.product.update({ where: { id }, data: { status: "ARCHIVED" } });
     revalidatePath("/", "layout");
+  touchCategories();
     return { ok: true, message: "This product has orders, so it was archived instead of deleted." };
   }
   await db.product.delete({ where: { id } });
   revalidatePath("/", "layout");
+  touchCategories();
   return { ok: true, message: "Product deleted" };
 }

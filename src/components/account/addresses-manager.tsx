@@ -62,7 +62,7 @@ export function AddressesManager({ addresses, max = 10 }: { addresses: A[]; max?
         <div className="bg-surface p-5 md:p-6" style={{ borderRadius: "var(--radius)" }}>
           <h2 className="mb-4 text-2xl">{editing === "new" ? "New address" : "Edit address"}</h2>
           <AddressFields value={form} onChange={setForm} errors={errors} prefix="acc" />
-          <label className="mt-4 flex items-center gap-3 text-[16px]">
+          <label className="mt-4 flex min-h-11 cursor-pointer items-center gap-3 text-[16px]">
             <input type="checkbox" className="h-5 w-5 accent-[var(--accent)]" checked={isDefault} onChange={(e) => setIsDefault(e.target.checked)} /> Use as my default address
           </label>
           {err && <p className="error-text" role="alert">{err}</p>}

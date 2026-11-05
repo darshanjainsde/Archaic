@@ -18,7 +18,7 @@ export function ProfileForm({ name, email, phone, marketing }: { name: string; e
         <p id="p-email-hint" className="hint">To change your email, write to us.</p>
       </div>
       <TextField id="p-phone" name="phone" label="Mobile number" type="tel" inputMode="tel" autoComplete="tel-national" defaultValue={phone} error={fe.phone} maxLength={14} />
-      <label className="flex items-start gap-3 text-[16px]">
+      <label className="flex min-h-11 cursor-pointer items-start gap-3 text-[16px]">
         <input type="checkbox" name="marketing" defaultChecked={marketing} className="mt-1 h-5 w-5 accent-[var(--accent)]" />
         <span>Send me letters about new scents and offers</span>
       </label>

@@ -1,7 +1,7 @@
 "use server";
 import { revalidatePath } from "next/cache";
 import { assertAdmin } from "@/lib/auth";
-import { getSettings, saveSettings } from "@/lib/settings";
+import { getSettingsFresh, saveSettings } from "@/lib/settings";
 import { DEFAULT_SETTINGS, settingsSchema, type StoreSettings } from "@/lib/settings-schema";
 import { firstError, zodFieldErrors, type ActionResult } from "@/lib/admin-types";
 
@@ -11,7 +11,7 @@ const KEYS = Object.keys(DEFAULT_SETTINGS) as Key[];
 /** Replace one or more top-level parts of the settings, validating the whole object before saving. */
 export async function saveSettingsParts(parts: Partial<StoreSettings>): Promise<ActionResult> {
   await assertAdmin();
-  const current = await getSettings();
+  const current = await getSettingsFresh();
   const next = { ...current } as Record<string, unknown>;
   for (const k of Object.keys(parts) as Key[]) {
     if (!KEYS.includes(k)) return { ok: false, error: `Unknown settings area ${String(k)}` };

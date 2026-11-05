@@ -8,13 +8,14 @@ const db = new PrismaClient();
 const img = (f: string) => `/images/products/${f}.svg`;
 const r = (rupees: number) => rupees * 100;
 
+// [id, label, wax tint for the candle button, short note under the name]
 const SCENTS = [
-  ["oud", "Oud & Amber"], ["sandal", "Sandalwood"], ["vanilla", "Vanilla Bean"], ["lavender", "Lavender Fields"], ["jasmine", "Night Jasmine"], ["petrichor", "Monsoon Petrichor"], ["rose", "Rose & Saffron"],
+  ["oud", "Oud & Amber", "#d9a35a", "resin · honey"], ["sandal", "Sandalwood", "#e9dcc3", "creamy · musk"], ["vanilla", "Vanilla Bean", "#f1e3c2", "warm · sweet"], ["lavender", "Lavender Fields", "#c9b8d9", "fields · linen"], ["jasmine", "Night Jasmine", "#f1ecdf", "mogra · white tea"], ["petrichor", "Monsoon Petrichor", "#8fa98a", "vetiver · wet earth"], ["rose", "Rose & Saffron", "#e7b7b0", "damask · kesar"],
 ] as const;
 
 function scentGroup(defaultFirst?: string) {
   const list = defaultFirst ? [...SCENTS].sort((a) => (a[0] === defaultFirst ? -1 : 1)) : SCENTS;
-  return { id: "scent", name: "Scent", display: "button", required: true, values: list.map(([id, label]) => ({ id, label, hex: null, priceDelta: id === "oud" ? r(100) : 0, image: null, available: true })) };
+  return { id: "scent", name: "Scent", display: "candle", required: true, values: list.map(([id, label, hex, note]) => ({ id, label, hex, note, priceDelta: id === "oud" ? r(100) : 0, image: null, available: true })) };
 }
 function colourGroup(slug: string) {
   const c: [string, string, string][] = [["ivory", "Ivory", "#efe6d2"], ["amber", "Amber", "#d9a05b"], ["walnut", "Walnut", "#7a5634"], ["sage", "Sage", "#a9b59a"], ["rose", "Rose clay", "#d9a6a0"]];
@@ -47,6 +48,7 @@ const JARS = [
 
 async function main() {
   await db.setting.upsert({ where: { id: "store" }, create: { id: "store", data: DEFAULT_SETTINGS as object }, update: {} });
+  await upgradeSettings();
   await db.orderCounter.upsert({ where: { id: "orders" }, create: { id: "orders", value: 10000 }, update: {} });
 
   const email = (process.env.ADMIN_EMAIL || "admin@archaiccandles.com").toLowerCase();
@@ -55,13 +57,29 @@ async function main() {
   await db.user.upsert({ where: { email }, create: { email, name: "Archaic Admin", passwordHash: await bcrypt.hash(password, 11), role: "ADMIN" }, update: { role: "ADMIN" } });
 
   const cats = [
-    { slug: "candles", name: "Jar candles", description: "Hand-poured soy wax in reusable apothecary jars.", image: img("oud-amber-amber"), sortOrder: 1 },
-    { slug: "pillars", name: "Pillar & sculpted", description: "Free-standing pillars and sculpted shapes.", image: img("pillar-trio-ivory"), sortOrder: 2 },
-    { slug: "gift-sets", name: "Gift sets", description: "Boxed, wrapped and ready to give.", image: img("box-diwali"), sortOrder: 3 },
-    { slug: "accessories", name: "Accessories", description: "Everything for a cleaner, longer burn.", image: img("trimmer"), sortOrder: 4 },
+    { slug: "candles", name: "Scented jar candles", description: "Hand-poured soy wax scented candles in reusable apothecary jars. Oud, sandalwood, rose, jasmine and monsoon petrichor, 40+ hour burn.", image: img("oud-amber-amber"), sortOrder: 1 },
+    { slug: "pillars", name: "Pillar & sculpted candles", description: "Unscented and scented pillar candles and sculpted decor candles for your table, puja room, Diwali and weddings.", image: img("pillar-trio-ivory"), sortOrder: 2 },
+    { slug: "gift-sets", name: "Candle gift sets", description: "Candle gift boxes and hampers, wrapped by hand with a personal note. For Diwali, weddings, birthdays, housewarmings and corporate gifting.", image: img("box-diwali"), sortOrder: 3 },
+    { slug: "accessories", name: "Candle accessories", description: "Wick trimmers, snuffers, matches and care tools for a cleaner, longer and safer candle burn.", image: img("trimmer"), sortOrder: 4 },
   ];
   const catIds: Record<string, string> = {};
   for (const c of cats) catIds[c.slug] = (await db.category.upsert({ where: { slug: c.slug }, create: c, update: {} })).id;
+
+  // Sub-categories (two levels only). Upserted by slug; a later admin edit is never overwritten.
+  const subs = [
+    { parent: "gift-sets", slug: "diwali-gifts", name: "Diwali gifts", image: img("box-diwali"), sortOrder: 1 },
+    { parent: "gift-sets", slug: "wedding-favours", name: "Wedding favours", image: img("box-wedding"), sortOrder: 2 },
+    { parent: "gift-sets", slug: "birthday-gifts", name: "Birthday", image: img("box-birthday"), sortOrder: 3 },
+    { parent: "gift-sets", slug: "housewarming", name: "Housewarming", image: img("box-selfcare"), sortOrder: 4 },
+    { parent: "gift-sets", slug: "corporate-gifting", name: "Corporate gifting", image: img("matches"), sortOrder: 5 },
+    { parent: "candles", slug: "oud-woody", name: "Oud & woody", image: img("oud-amber-amber"), sortOrder: 1 },
+    { parent: "candles", slug: "floral", name: "Floral", image: img("rose-saffron-rose"), sortOrder: 2 },
+    { parent: "candles", slug: "fresh-green", name: "Fresh & green", image: img("monsoon-sage"), sortOrder: 3 },
+  ];
+  for (const c of subs) {
+    const parentId = catIds[c.parent];
+    catIds[c.slug] = (await db.category.upsert({ where: { slug: c.slug }, create: { slug: c.slug, name: c.name, image: c.image, sortOrder: c.sortOrder, parentId }, update: {} })).id;
+  }
 
   type P = { slug: string; name: string; cat: string; price: number; compare?: number | null; stock: number; featured?: boolean; badge?: string | null; short: string; desc: string; images: string[]; options: unknown[]; specs?: unknown[]; personalization?: unknown; tags?: string[] };
   const products: P[] = [
@@ -96,6 +114,15 @@ async function main() {
     });
   }
 
+  // Put the sample products into their sub-categories, but only while they still sit in the parent (never undo an admin move).
+  const placement: Record<string, [string, string]> = {
+    "diwali-gift-box": ["gift-sets", "diwali-gifts"], "wedding-hamper": ["gift-sets", "wedding-favours"], "birthday-box": ["gift-sets", "birthday-gifts"], "slow-evening-set": ["gift-sets", "housewarming"],
+    "oud-amber": ["candles", "oud-woody"], sandalwood: ["candles", "oud-woody"], "rose-saffron": ["candles", "floral"], jasmine: ["candles", "floral"], monsoon: ["candles", "fresh-green"],
+  };
+  for (const [slug, [from, to]] of Object.entries(placement)) {
+    await db.product.updateMany({ where: { slug, categoryId: catIds[from] }, data: { categoryId: catIds[to] } });
+  }
+
   const pages = [
     { slug: "about", title: "Our story", content: "Archaic Candles began at a kitchen table, with a double boiler and a jar of soy flakes.\n\nWe pour every candle by hand in small batches, blend our own fragrance oils, and write each label for the person who will light it.\n\n## What we use\n- 100% soy wax and lead-free cotton wicks\n- Phthalate-free fragrance and essential oils\n- Reusable amber glass jars" },
     { slug: "shipping-policy", title: "Shipping policy", content: "We dispatch orders within 2 working days. Delivery across India usually takes 3–7 working days after dispatch.\n\n- Free shipping on orders above ₹999\n- A flat ₹79 shipping fee applies below that\n- You will receive a tracking number by email when your order ships" },
@@ -115,6 +142,36 @@ async function main() {
     ] });
   }
   console.log("Seed complete. Admin:", email);
+}
+
+/** Brings stored settings up to date with sections added since they were saved. Only fills what is missing. */
+async function upgradeSettings() {
+  const row = await db.setting.findUnique({ where: { id: "store" } });
+  const data = row?.data as { home?: { sections?: Record<string, unknown>[] } } | null;
+  const list = data?.home?.sections;
+  if (!data || !Array.isArray(list)) return;
+  let changed = false;
+  if (!list.some((s) => s.type === "occasions")) {
+    const def = DEFAULT_SETTINGS.home.sections.find((s) => s.type === "occasions")!;
+    const at = list.findIndex((s) => s.type === "usp");
+    list.splice(at >= 0 ? at + 1 : Math.min(1, list.length), 0, { ...def });
+    changed = true;
+  }
+  for (const s of list) {
+    // sections saved before the hero product existed have no key at all; an empty string is the admin's own choice
+    if (s.type === "hero" && !("productSlug" in s)) { s.productSlug = "oud-amber"; s.buyNow = true; s.pour = true; changed = true; }
+  }
+  // header links saved before dropdown menus existed: give the shop links their menu (only where the key is missing)
+  const nav = (data as { nav?: Record<string, unknown>[] }).nav;
+  if (Array.isArray(nav)) {
+    for (const l of nav) {
+      if ("menu" in l || typeof l.href !== "string") continue;
+      const m = /^\/shop\?category=([\w-]+)$/.exec(l.href);
+      if (l.href === "/shop") { l.menu = "all"; l.categorySlug = ""; changed = true; }
+      else if (m) { l.menu = "category"; l.categorySlug = m[1]; changed = true; }
+    }
+  }
+  if (changed) await db.setting.update({ where: { id: "store" }, data: { data: data as object } });
 }
 
 main().catch((e) => { console.error(e); process.exit(1); }).finally(() => db.$disconnect());

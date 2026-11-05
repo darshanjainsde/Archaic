@@ -6,7 +6,7 @@ import { FONT_KEYS } from "./fonts-list";
 const hex = z.string().regex(/^#([0-9a-fA-F]{6})$/, "Use a 6 digit hex colour like #2b2216");
 
 export const themeSchema = z.object({
-  preset: z.string().default("walnut"),
+  preset: z.string().default("beige"),
   colors: z.object({
     bg: hex, // page ground
     surface: hex, // panels, cards (one tone step from bg)
@@ -25,13 +25,24 @@ export const themeSchema = z.object({
   displayFont: z.enum(FONT_KEYS).default("fraunces"),
   bodyFont: z.enum(FONT_KEYS).default("manrope"),
   headingWeight: z.number().int().min(300).max(800).default(500),
+  /** Page-wide scroll scene. "honeycomb": kraft honeycomb wrap that opens as you scroll, lit by a fixed candle. "calm": none. */
+  motion: z.enum(["honeycomb", "calm"]).default("honeycomb"),
 });
 export type ThemeSettings = z.infer<typeof themeSchema>;
 
 const sectionBase = { id: z.string().min(1), enabled: z.boolean().default(true) };
 
 export const homeSectionSchema = z.discriminatedUnion("type", [
-  z.object({ ...sectionBase, type: z.literal("hero"), heading: z.string().default(""), text: z.string().default(""), ctaLabel: z.string().default(""), ctaHref: z.string().default(""), image: z.string().nullish() }),
+  z.object({
+    ...sectionBase, type: z.literal("hero"), heading: z.string().default(""), text: z.string().default(""), ctaLabel: z.string().default(""), ctaHref: z.string().default(""), image: z.string().nullish(),
+    /** Product shown on the hero jar with price and Buy now (slug). Empty = headline only. */
+    productSlug: z.string().default(""),
+    buyNow: z.boolean().default(true),
+    /** The scroll-driven pour animation on the hero jar */
+    pour: z.boolean().default(true),
+  }),
+  /** Gift tags: the sub-categories of `categorySlug` (e.g. Diwali, Wedding, Corporate under Gift sets) as photo tiles with count and starting price. */
+  z.object({ ...sectionBase, type: z.literal("occasions"), heading: z.string().default("Gifts for the occasion"), text: z.string().default("Boxed, wrapped and ready to give."), categorySlug: z.string().default("gift-sets") }),
   z.object({ ...sectionBase, type: z.literal("usp"), items: z.array(z.object({ title: z.string(), text: z.string() })).max(6) }),
   z.object({ ...sectionBase, type: z.literal("categories"), heading: z.string().default("Shop by category"), text: z.string().default("") }),
   z.object({
@@ -63,7 +74,14 @@ export const tierSchema = z.object({
 });
 export type MembershipTier = z.infer<typeof tierSchema>;
 
-export const linkSchema = z.object({ label: z.string().min(1), href: z.string().min(1) });
+export const linkSchema = z.object({
+  label: z.string().min(1),
+  href: z.string().min(1),
+  /** Header only: open a dropdown under this link. "all" = every category; "category" = the sub-categories of `categorySlug`. */
+  menu: z.enum(["none", "all", "category"]).default("none"),
+  categorySlug: z.string().default(""),
+});
+export type NavLink = z.infer<typeof linkSchema>;
 
 export const settingsSchema = z.object({
   store: z.object({
@@ -79,6 +97,8 @@ export const settingsSchema = z.object({
     facebook: z.string().default(""),
     youtube: z.string().default(""),
     pinterest: z.string().default(""),
+    x: z.string().default(""),
+    mapsUrl: z.string().default(""),
   }),
   theme: themeSchema,
   announcement: z.object({
@@ -108,6 +128,23 @@ export const settingsSchema = z.object({
     lowStockThreshold: z.number().int().min(0).default(5),
     maxQtyPerLine: z.number().int().min(1).max(99).default(10),
     taxNote: z.string().default("Prices include all taxes"),
+    /** Spend thresholds (paise, after discounts) that unlock a free product, added to the order at ₹0. */
+    freeGifts: z.array(z.object({
+      id: z.string().min(1),
+      enabled: z.boolean().default(true),
+      threshold: z.number().int().min(0),
+      productSlug: z.string().default(""),
+      label: z.string().default(""), // shown in the progress bar, e.g. "Free long matches"
+    })).max(5).default([]),
+    /** "Add one of these" rail in the bag and at checkout, to reach free delivery / the next gift. */
+    upsell: z.object({
+      enabled: z.boolean().default(true),
+      heading: z.string().default("Add one of these for free delivery"),
+      source: z.enum(["bestsellers", "featured", "category", "new"]).default("bestsellers"),
+      categorySlug: z.string().default(""),
+      limit: z.number().int().min(2).max(12).default(6),
+      onCheckout: z.boolean().default(true),
+    }).default({ enabled: true, heading: "Add one of these for free delivery", source: "bestsellers", categorySlug: "", limit: 6, onCheckout: true }),
   }),
   membership: z.object({
     enabled: z.boolean().default(true),
@@ -118,7 +155,15 @@ export const settingsSchema = z.object({
 });
 export type StoreSettings = z.infer<typeof settingsSchema>;
 
-export const THEME_PRESETS: Record<string, { label: string; theme: Omit<ThemeSettings, "preset"> }> = {
+export const THEME_PRESETS: Record<string, { label: string; theme: Omit<ThemeSettings, "preset" | "motion"> }> = {
+  beige: {
+    label: "Linen Beige",
+    theme: {
+      // contrast: ink on bg 13.3:1 · muted on bg 6.1:1 · accentInk on accent 13.9:1 · sale on bg 4.6:1
+      colors: { bg: "#f1e8d9", surface: "#e8dcc8", ink: "#2b2216", muted: "#6a5944", accent: "#2b2216", accentInk: "#f6eee1", field: "#2b2216", fieldInk: "#f1e8d9", paper: "#fffaf1", paperInk: "#2b2216", sale: "#a85a1f" },
+      radius: 0, buttonShape: "square", displayFont: "fraunces", bodyFont: "manrope", headingWeight: 500,
+    },
+  },
   walnut: {
     label: "Walnut & Tan",
     theme: {
@@ -170,28 +215,32 @@ export const DEFAULT_SETTINGS: StoreSettings = {
     facebook: "",
     youtube: "",
     pinterest: "",
+    x: "",
+    mapsUrl: "",
   },
-  theme: { preset: "walnut", ...THEME_PRESETS.walnut.theme },
+  theme: { preset: "beige", motion: "honeycomb", ...THEME_PRESETS.beige.theme },
   announcement: {
     enabled: true,
     messages: ["Free shipping on orders above ₹999", "Gift wrapping with a handwritten note on every order"],
     href: "/shop",
   },
   nav: [
-    { label: "Shop all", href: "/shop" },
-    { label: "Candles", href: "/shop?category=candles" },
-    { label: "Gift sets", href: "/shop?category=gift-sets" },
-    { label: "Track order", href: "/track" },
+    { label: "Shop", href: "/shop", menu: "all", categorySlug: "" },
+    { label: "Candles", href: "/shop?category=candles", menu: "category", categorySlug: "candles" },
+    { label: "Gifting", href: "/shop?category=gift-sets", menu: "category", categorySlug: "gift-sets" },
+    { label: "Our story", href: "/pages/about", menu: "none", categorySlug: "" },
+    { label: "Track order", href: "/track", menu: "none", categorySlug: "" },
   ],
   home: {
     sections: [
-      { id: "hero", type: "hero", enabled: true, heading: "Archaic Candles", text: "Soy wax candles poured by hand in small batches, labelled like the apothecary jars they come from.", ctaLabel: "Shop the candles", ctaHref: "/shop", image: null },
+      { id: "hero", type: "hero", enabled: true, heading: "Choose your scent. We pour it.", text: "Scented soy candles in reusable apothecary jars, labelled for the person who will light them. Gift-wrapped by hand and shipped across India.", ctaLabel: "Shop the candles", ctaHref: "/shop", image: null, productSlug: "oud-amber", buyNow: true, pour: true },
       { id: "usp", type: "usp", enabled: true, items: [
         { title: "Hand-poured soy wax", text: "Clean-burning, poured in batches of forty." },
         { title: "Choose your scent", text: "Every candle can be poured in the scent and colour you pick." },
         { title: "Gift-ready", text: "Wrapped by hand with a note in your words." },
         { title: "Ships across India", text: "Dispatched within two working days." },
       ] },
+      { id: "occasions", type: "occasions", enabled: true, heading: "Gifts for the occasion", text: "Boxed, wrapped and ready to give.", categorySlug: "gift-sets" },
       { id: "cats", type: "categories", enabled: true, heading: "Shop by category", text: "" },
       { id: "featured", type: "products", enabled: true, heading: "The apothecary shelf", text: "Our most loved pours, ready to choose your scent.", source: "featured", categorySlug: null, limit: 8, layout: "carousel" },
       { id: "promo", type: "promo", enabled: true },
@@ -205,8 +254,8 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   footer: {
     about: "Archaic Candles is a small workshop pouring soy wax candles and putting together gifts for the people you love.",
     links: [
-      { label: "Track your order", href: "/track" },
-      { label: "My account", href: "/account" },
+      { label: "Track your order", href: "/track", menu: "none", categorySlug: "" },
+      { label: "My account", href: "/account", menu: "none", categorySlug: "" },
     ],
   },
   commerce: {
@@ -228,6 +277,11 @@ export const DEFAULT_SETTINGS: StoreSettings = {
     lowStockThreshold: 5,
     maxQtyPerLine: 10,
     taxNote: "Prices include all taxes",
+    freeGifts: [
+      { id: "g1", enabled: true, threshold: 149900, productSlug: "long-matches", label: "Free long matches" },
+      { id: "g2", enabled: true, threshold: 249900, productSlug: "brass-wick-trimmer", label: "Free brass wick trimmer" },
+    ],
+    upsell: { enabled: true, heading: "Add one of these for free delivery", source: "bestsellers", categorySlug: "", limit: 6, onCheckout: true },
   },
   membership: {
     enabled: true,
@@ -239,8 +293,8 @@ export const DEFAULT_SETTINGS: StoreSettings = {
     ],
   },
   seo: {
-    title: "Archaic Candles — Hand-poured candles & gifts",
-    description: "Soy wax candles hand-poured in small batches. Choose your scent, colour and label. Gift sets wrapped by hand, shipped across India.",
+    title: "Archaic Candles | Hand-poured Scented Candles & Gift Sets in India",
+    description: "Shop hand-poured soy wax scented candles and candle gift sets online. Choose your scent, wax colour and label. Gift-wrapped by hand and shipped across India.",
     ogImage: null,
   },
 };

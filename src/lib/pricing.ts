@@ -9,7 +9,7 @@ export function parseOptions(raw: unknown): OptionGroup[] {
     .map((g: OptionGroup) => ({
       id: String(g.id),
       name: String(g.name ?? "Option"),
-      display: g.display === "swatch" || g.display === "dropdown" ? g.display : "button",
+      display: g.display === "swatch" || g.display === "dropdown" || g.display === "candle" ? g.display : "button",
       required: g.required !== false,
       values: g.values.map((v) => ({
         id: String(v.id),
@@ -18,6 +18,7 @@ export function parseOptions(raw: unknown): OptionGroup[] {
         priceDelta: Number.isFinite(v.priceDelta) ? Math.trunc(v.priceDelta) : 0,
         image: v.image ?? null,
         available: v.available !== false,
+        note: typeof v.note === "string" && v.note.trim() ? v.note.trim().slice(0, 40) : null,
       })),
     }));
 }

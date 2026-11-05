@@ -1,16 +1,18 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Minus, Plus, Truck } from "lucide-react";
+import { Check, Minus, Plus, Truck } from "lucide-react";
 import { toast } from "sonner";
 import { Img } from "@/components/ui/img";
 import { Stars } from "@/components/ui/stars";
 import { WishlistButton } from "@/components/store/wishlist-button";
+import { BAG_ADDED_EVENT } from "@/components/store/bag-events";
 import { cart } from "@/lib/cart-store";
 import { lineKey, resolveLine } from "@/lib/pricing";
 import { discountPercent, formatMoney } from "@/lib/money";
 import type { OptionGroup, Personalization, Selection } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { defaultSelections } from "@/lib/quick-add";
 
 export type ProductViewData = {
   id: string;
@@ -31,27 +33,32 @@ export type ProductViewData = {
   isDraft: boolean;
 };
 
-function initialSelections(groups: OptionGroup[]): Record<string, string> {
-  const out: Record<string, string> = {};
-  for (const g of groups) {
-    if (!g.required) continue;
-    const first = g.values.find((v) => v.available);
-    if (first) out[g.id] = first.id;
-  }
-  return out;
+/** A small candle tinted by the value's colour; the flame shows (and flickers) only on the chosen one. */
+function CandleIcon({ hex }: { hex: string | null | undefined }) {
+  return (
+    <svg viewBox="0 0 38 46" aria-hidden>
+      <path className="fl" d="M19 12 c-5 7 2 9 0 13 c-2-4 5-6 0-13z" fill="#ffb347" />
+      <rect x="18" y="20" width="2" height="6" fill="currentColor" opacity=".7" />
+      <rect x="8" y="26" width="22" height="18" rx="3" fill={hex && /^#[0-9a-f]{6}$/i.test(hex) ? hex : "var(--accent)"} stroke="currentColor" strokeOpacity=".25" />
+      <rect x="11" y="32" width="16" height="7" fill="var(--paper)" stroke="currentColor" strokeOpacity=".2" strokeWidth=".6" />
+    </svg>
+  );
 }
 
 export function ProductView({ p, wishlisted, deliveryText, children }: { p: ProductViewData; wishlisted: boolean; deliveryText: string; children?: React.ReactNode }) {
   const router = useRouter();
-  const [sel, setSel] = useState<Record<string, string>>(() => initialSelections(p.options));
+  const [sel, setSel] = useState<Record<string, string>>(() => defaultSelections(p.options));
+  const [lit, setLit] = useState(false);
   const [text, setText] = useState("");
   const [qty, setQty] = useState(1);
   const [active, setActive] = useState(0);
   const [showError, setShowError] = useState(false);
   const [barVisible, setBarVisible] = useState(false);
+  const [added, setAdded] = useState(0);
   const ctaRef = useRef<HTMLDivElement>(null);
   const railRef = useRef<HTMLDivElement>(null);
 
+  useEffect(() => { setLit(false); }, [sel]);
   const selections: Selection[] = useMemo(() => Object.entries(sel).map(([groupId, valueId]) => ({ groupId, valueId })), [sel]);
   const res = resolveLine(p.price, p.options, selections, p.personalization, text);
   const unit = res.ok ? res.unitPrice : p.price;
@@ -91,6 +98,15 @@ export function ProductView({ p, wishlisted, deliveryText, children }: { p: Prod
     return () => io.disconnect();
   }, []);
 
+  // "Added" confirmation on the button for a moment after each add
+  const [justAdded, setJustAdded] = useState(false);
+  useEffect(() => {
+    if (!added) return;
+    setJustAdded(true);
+    const t = setTimeout(() => setJustAdded(false), 2000);
+    return () => clearTimeout(t);
+  }, [added]);
+
   useEffect(() => { if (qty > maxQty && maxQty > 0) setQty(maxQty); }, [maxQty, qty]);
 
   function add(buyNow: boolean) {
@@ -111,7 +127,10 @@ export function ProductView({ p, wishlisted, deliveryText, children }: { p: Prod
       { key, productId: p.id, slug: p.slug, name: p.name, image: res.optionImage ?? p.images[0]?.url ?? null, unitPrice: unit, quantity: qty, selections, selectionLabels: res.snapshot, personalization: res.personalization ?? undefined },
       maxQty,
     );
+    window.dispatchEvent(new Event(BAG_ADDED_EVENT));
     if (buyNow) { router.push("/checkout"); return; }
+    setAdded((n) => n + 1);
+    setLit(true);
     toast.success(`${p.name} added to your bag`, { action: { label: "View bag", onClick: () => router.push("/cart") } });
   }
 
@@ -129,8 +148,14 @@ export function ProductView({ p, wishlisted, deliveryText, children }: { p: Prod
         <div className="relative -mx-4 md:mx-0">
           <div ref={railRef} onScroll={onRailScroll} className="snap-row no-scrollbar auto-cols-[100%] bg-surface md:overflow-hidden" style={{ borderRadius: "var(--radius)" }} aria-label="Product images" role="region">
             {gallery.map((g, i) => (
-              <div key={g.url + i} className="relative aspect-[4/5]">
-                <Img src={g.url} alt={g.alt || `${p.name}, image ${i + 1}`} fill priority={i === 0} sizes="(min-width:1024px) 55vw, 100vw" className="object-cover" />
+              <div key={g.url + i} className="relative aspect-[4/5]" data-lit={lit && i === active ? "" : undefined}>
+                <Img src={g.url} alt={g.alt || `${p.name}, image ${i + 1}`} fill priority={i === 0} sizes="(min-width:1024px) 55vw, 100vw" className="lit-img object-cover" />
+                {i === active && (
+                  <>
+                    <span className="lit-layer" aria-hidden />
+                    <svg className="lit-flame" viewBox="0 0 26 46" aria-hidden><path d="M13 2 c-9 13 4 17 0 24 c-4-7 9-11 0-24z" fill="#ffb347" /><path d="M13 12 c-4 7 2 9 0 13 c-2-4 4-6 0-13z" fill="#fff3c4" /></svg>
+                  </>
+                )}
               </div>
             ))}
           </div>
@@ -190,6 +215,21 @@ export function ProductView({ p, wishlisted, deliveryText, children }: { p: Prod
                         </option>
                       ))}
                     </select>
+                  ) : g.display === "candle" ? (
+                    <div role="radiogroup" aria-label={g.name} className="candle-opts">
+                      {g.values.map((v) => {
+                        const checked = sel[g.id] === v.id;
+                        const toggle = () => setSel((s) => { const n = { ...s }; if (checked && !g.required) delete n[g.id]; else n[g.id] = v.id; return n; });
+                        const second = v.note || (v.priceDelta ? `+${formatMoney(v.priceDelta)}` : null);
+                        return (
+                          <button key={v.id} type="button" role="radio" aria-checked={checked} aria-label={`${v.label}${v.priceDelta ? `, plus ${formatMoney(v.priceDelta)}` : ""}${!v.available ? ", unavailable" : ""}`} disabled={!v.available} onClick={toggle} className="candle-opt">
+                            <CandleIcon hex={v.hex} />
+                            <span className="t">{v.label}</span>
+                            {second && <span className="n">{second}</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
                   ) : (
                     <div role="radiogroup" aria-label={g.name} className={cn("flex flex-wrap", g.display === "swatch" ? "gap-3" : "gap-2")}>
                       {g.values.map((v) => {
@@ -238,7 +278,9 @@ export function ProductView({ p, wishlisted, deliveryText, children }: { p: Prod
                     <span className="w-8 text-center text-[16px] font-semibold tabular-nums" aria-live="polite" aria-label={`Quantity ${qty}`}>{qty}</span>
                     <button type="button" className="flex h-12 w-11 items-center justify-center disabled:opacity-35" aria-label="Increase quantity" disabled={qty >= maxQty} onClick={() => setQty((q) => Math.min(maxQty, q + 1))}><Plus size={16} /></button>
                   </div>
-                  <button type="button" className="btn btn-primary flex-1" onClick={() => add(false)}>Add to bag</button>
+                  <button type="button" className={cn("btn btn-primary min-w-0 flex-1", justAdded && "btn-lit")} onClick={() => add(false)}>
+                    {justAdded ? <span key={added} className="is-added inline-flex items-center gap-2"><Check size={18} aria-hidden />Added</span> : "Add to bag"}
+                  </button>
                   <WishlistButton productId={p.id} initial={wishlisted} className="btn btn-ghost !px-3.5" />
                 </div>
                 <button type="button" className="btn btn-ink mt-3 w-full" onClick={() => add(true)}>Buy now</button>
@@ -255,13 +297,15 @@ export function ProductView({ p, wishlisted, deliveryText, children }: { p: Prod
 
       {/* Sticky mobile add-to-bag bar */}
       {!soldOut && (
-        <div className={cn("fixed inset-x-0 z-30 bg-paper px-4 py-3 text-paper-ink transition-transform duration-300 lg:hidden", barVisible ? "translate-y-0" : "translate-y-[200%]")} style={{ bottom: "calc(64px + var(--safe-bottom))" }} aria-hidden={!barVisible}>
+        <div className={cn("dock-bar fixed inset-x-0 z-30 bg-paper px-4 py-3 text-paper-ink shadow-[0_-8px_24px_rgb(0_0_0/0.18)] lg:hidden", barVisible ? "visible translate-y-0" : "invisible translate-y-[200%]")} style={{ bottom: "calc(64px + var(--safe-bottom))" }} aria-hidden={!barVisible}>
           <div className="flex items-center gap-3">
             <div className="min-w-0 flex-1">
               <p className="truncate text-[15px] font-semibold">{p.name}</p>
               <p className="text-[15px] tabular-nums">{formatMoney(unit)}</p>
             </div>
-            <button type="button" tabIndex={barVisible ? 0 : -1} className="btn" style={{ background: "var(--paper-ink)", color: "var(--paper)" }} onClick={() => add(false)}>Add to bag</button>
+            <button type="button" tabIndex={barVisible ? 0 : -1} className="btn shrink-0" style={{ background: "var(--paper-ink)", color: "var(--paper)" }} onClick={() => add(false)}>
+              {justAdded ? <span key={added} className="is-added inline-flex items-center gap-2"><Check size={18} aria-hidden />Added</span> : "Add to bag"}
+            </button>
           </div>
         </div>
       )}

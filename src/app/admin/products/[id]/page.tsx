@@ -3,6 +3,7 @@ import { db } from "@/lib/db";
 import { parseOptions } from "@/lib/pricing";
 import { PageHeader } from "@/components/admin/ui";
 import { ProductForm } from "@/components/admin/product-form";
+import { flattenTree, getCategoryTree } from "@/lib/categories";
 import type { Personalization, Spec } from "@/lib/types";
 
 export const metadata = { title: "Edit product" };
@@ -11,7 +12,7 @@ export default async function EditProduct({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const [p, categories] = await Promise.all([
     db.product.findUnique({ where: { id }, include: { images: { orderBy: { sortOrder: "asc" } } } }),
-    db.category.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, name: true } }),
+    getCategoryTree().then(flattenTree),
   ]);
   if (!p) notFound();
   const specs = Array.isArray(p.specs) ? (p.specs as Spec[]) : [];

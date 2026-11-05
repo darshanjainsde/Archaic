@@ -28,12 +28,12 @@ export function OrderStatusForm({ id, status, allowed, paid, tracking, eta }: { 
           <div><label className="label" htmlFor="cr">Courier</label><input id="cr" name="courier" className="field" defaultValue={tracking.courier} placeholder="Delhivery, Blue Dart…" /></div>
           <div><label className="label" htmlFor="tn">Tracking number</label><input id="tn" name="trackingNumber" className="field" defaultValue={tracking.trackingNumber} /></div>
           <div className="sm:col-span-2"><label className="label" htmlFor="tu">Tracking link</label><input id="tu" name="trackingUrl" type="url" className="field" defaultValue={tracking.trackingUrl} placeholder="https://…" /></div>
-          {next === "SHIPPED" && <label className="flex items-center gap-2 text-[13px] sm:col-span-2"><input type="checkbox" name="skipTracking" className="h-4 w-4" /> Ship without a tracking number</label>}
+          {next === "SHIPPED" && <label className="check-row sm:col-span-2"><input type="checkbox" name="skipTracking" /><span className="text-[15px]">Ship without a tracking number</span></label>}
         </div>
       )}
       <div><label className="label" htmlFor="eta">Estimated delivery</label><input id="eta" name="estimatedDelivery" type="date" className="field" defaultValue={eta} /></div>
       <div><label className="label" htmlFor="nt">Note for the timeline</label><textarea id="nt" name="note" rows={2} className="field" placeholder="Optional. Shown to the customer unless private." /></div>
-      <label className="flex items-center gap-2 text-[13px]"><input type="checkbox" name="private" className="h-4 w-4" /> Keep this note private</label>
+      <label className="check-row"><input type="checkbox" name="private" /><span className="text-[15px]">Keep this note private</span></label>
       <SubmitButton className="w-full" pendingText="Updating…">Update order</SubmitButton>
       <p className="hint">Shipped, delivered, cancelled and refunded updates email the customer.</p>
     </ActionForm>

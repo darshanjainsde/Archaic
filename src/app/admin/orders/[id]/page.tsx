@@ -94,7 +94,7 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
               <label className="sr-only" htmlFor="pn">Add a note</label>
               <textarea id="pn" name="note" rows={2} className="field" placeholder="Add a note…" />
               <div className="flex items-center justify-between gap-2">
-                <label className="flex items-center gap-2 text-[13px]"><input type="checkbox" name="public" className="h-4 w-4" /> Show to customer</label>
+                <label className="check-row"><input type="checkbox" name="public" /><span className="text-[15px]">Show to customer</span></label>
                 <SubmitButton variant="ink" className="btn-sm">Add note</SubmitButton>
               </div>
             </ActionForm>

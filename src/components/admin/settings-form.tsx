@@ -1,7 +1,9 @@
 "use client";
 import { useEffect, useState, useTransition } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronRight, Plus, Trash2 } from "lucide-react";
 import type { StoreSettings, MembershipTier } from "@/lib/settings-schema";
 import { paiseToRupeesString, rupeesToPaise } from "@/lib/money";
 import { saveSettingsParts } from "@/actions/admin/settings";
@@ -10,16 +12,22 @@ import { Panel, Toggle, Tag } from "./ui";
 import { ImageField } from "./image-field";
 import { StringListEditor } from "./links-editor";
 import { CopyButton } from "./copy-button";
+import { SaveBar } from "./save-bar";
+import { EditorTabs } from "./editor-tabs";
+import { SocialIcon } from "@/components/ui/social-icons";
+import { DeliveryRewards, deliveryFromCommerce, giftsFromCommerce, readRewards, type DeliveryEdit, type GiftEdit, type Upsell, type RewardsCategory } from "./delivery-rewards";
+import type { PickableProduct } from "./product-picker";
 
 type Gateways = { razorpay: boolean; razorpayWebhook: boolean; cashfree: boolean; cashfreeEnv: string; blob: boolean; email: boolean };
-type Tab = "store" | "checkout" | "payments" | "membership" | "seo";
+export type SettingsTab = "delivery" | "store" | "checkout" | "payments" | "membership" | "seo";
+type Tab = SettingsTab;
 
 function Rupee({ id, label, value, onChange, hint }: { id: string; label: string; value: string; onChange: (v: string) => void; hint?: string }) {
   const bad = value.trim() !== "" && rupeesToPaise(value) === null;
   return (
     <div>
       <label className="label" htmlFor={id}>{label}</label>
-      <div className="relative"><span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">₹</span><input id={id} inputMode="decimal" aria-invalid={bad} className="field !pl-7" value={value} onChange={(e) => onChange(e.target.value)} /></div>
+      <div className="relative"><span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted">₹</span><input id={id} inputMode="decimal" autoComplete="off" aria-invalid={bad} className="field !pl-7" value={value} onChange={(e) => onChange(e.target.value)} /></div>
       {bad ? <p className="error-text">Enter an amount like 999 or 49.50</p> : hint && <p className="hint">{hint}</p>}
     </div>
   );
@@ -28,7 +36,7 @@ function Num({ id, label, value, onChange, min = 0, max = 999, hint }: { id: str
   return (
     <div>
       <label className="label" htmlFor={id}>{label}</label>
-      <input id={id} type="number" min={min} max={max} className="field" value={Number.isFinite(value) ? value : ""} onChange={(e) => onChange(Math.max(min, Math.min(max, Math.trunc(Number(e.target.value) || 0))))} />
+      <input id={id} type="number" inputMode="numeric" min={min} max={max} className="field" value={Number.isFinite(value) ? value : ""} onChange={(e) => onChange(Math.max(min, Math.min(max, Math.trunc(Number(e.target.value) || 0))))} />
       {hint && <p className="hint">{hint}</p>}
     </div>
   );
@@ -36,13 +44,28 @@ function Num({ id, label, value, onChange, min = 0, max = 999, hint }: { id: str
 
 type TierEdit = Omit<MembershipTier, "minSpend"> & { minSpend: string };
 
-export function SettingsForm({ initial, gateways, webhooks }: { initial: StoreSettings; gateways: Gateways; webhooks: { razorpay: string; cashfree: string } }) {
-  const [tab, setTab] = useState<Tab>("store");
-  const [store, setStore] = useState(initial.store);
+type Props = { initial: StoreSettings; gateways: Gateways; webhooks: { razorpay: string; cashfree: string }; initialTab?: Tab; products: PickableProduct[]; categories: RewardsCategory[] };
+const TABS: [Tab, string][] = [["delivery", "Delivery & rewards"], ["checkout", "Checkout & returns"], ["payments", "Payments"], ["membership", "Membership"], ["seo", "Search & sharing"], ["store", "Contact & social"]];
+
+/** Remounting with a new key throws away unsaved edits ("Discard") and picks up freshly saved settings. */
+export function SettingsForm(props: Props) {
+  const [k, setK] = useState(0);
+  return <Form key={k} {...props} onDiscard={() => setK((x) => x + 1)} />;
+}
+
+function Form({ initial, gateways, webhooks, initialTab, onDiscard, products, categories }: Props & { onDiscard: () => void }) {
+  const router = useRouter();
+  const [tab, setTab] = useState<Tab>(initialTab && TABS.some(([t]) => t === initialTab) ? initialTab : "delivery");
   const [seo, setSeo] = useState(initial.seo);
   const c0 = initial.commerce;
   const [commerce, setCommerce] = useState(c0);
-  const [money, setMoney] = useState({ freeShippingThreshold: paiseToRupeesString(c0.freeShippingThreshold), flatShipping: paiseToRupeesString(c0.flatShipping), giftWrapPrice: paiseToRupeesString(c0.giftWrapPrice), codFee: paiseToRupeesString(c0.codFee), codMaxOrder: paiseToRupeesString(c0.codMaxOrder) });
+  const [delivery, setDeliveryState] = useState<DeliveryEdit>(() => deliveryFromCommerce(c0));
+  const [gifts, setGiftsState] = useState<GiftEdit[]>(() => giftsFromCommerce(c0));
+  const [upsell, setUpsellState] = useState<Upsell>(c0.upsell);
+  const setDelivery = (p: Partial<DeliveryEdit>) => { setDirty(true); setDeliveryState((d) => ({ ...d, ...p })); };
+  const setGifts = (g: GiftEdit[]) => { setDirty(true); setGiftsState(g); };
+  const setUpsell = (p: Partial<Upsell>) => { setDirty(true); setUpsellState((u) => ({ ...u, ...p })); };
+  const [money, setMoney] = useState({ giftWrapPrice: paiseToRupeesString(c0.giftWrapPrice), codFee: paiseToRupeesString(c0.codFee), codMaxOrder: paiseToRupeesString(c0.codMaxOrder) });
   const [membership, setMembership] = useState({ enabled: initial.membership.enabled, name: initial.membership.name });
   const [tiers, setTiers] = useState<TierEdit[]>(initial.membership.tiers.map((t) => ({ ...t, minSpend: paiseToRupeesString(t.minSpend) || "0" })));
   const [dirty, setDirty] = useState(false);
@@ -55,7 +78,6 @@ export function SettingsForm({ initial, gateways, webhooks }: { initial: StoreSe
     return () => window.removeEventListener("beforeunload", h);
   }, [dirty]);
 
-  const st = (patch: Partial<typeof store>) => { setDirty(true); setStore((s) => ({ ...s, ...patch })); };
   const cm = (patch: Partial<typeof commerce>) => { setDirty(true); setCommerce((s) => ({ ...s, ...patch })); };
   const mn = (patch: Partial<typeof money>) => { setDirty(true); setMoney((s) => ({ ...s, ...patch })); };
   const setTier = (i: number, patch: Partial<TierEdit>) => { setDirty(true); setTiers((ts) => ts.map((t, k) => (k === i ? { ...t, ...patch } : t))); };
@@ -74,62 +96,53 @@ export function SettingsForm({ initial, gateways, webhooks }: { initial: StoreSe
       t.push({ ...x, name: x.name.trim(), minSpend: p, perks: x.perks.map((s) => s.trim()).filter(Boolean) });
     }
     if (!t.length) { toast.error("Keep at least one membership tier"); return; }
-    const parts: Partial<StoreSettings> = { store, seo, commerce: { ...commerce, ...m }, membership: { ...membership, tiers: t } };
+    const rw = readRewards(delivery, gifts, upsell, products);
+    if (!rw.ok) { toast.error(rw.error); setTab("delivery"); return; }
+    const { ok: _ok, ...rewards } = rw;
+    void _ok;
+    const parts: Partial<StoreSettings> = { seo, commerce: { ...commerce, ...m, ...rewards }, membership: { ...membership, tiers: t } };
     start(async () => {
       const r = await saveSettingsParts(parts);
-      if (r.ok) { setDirty(false); toast.success(r.message ?? "Saved"); }
+      if (r.ok) { setDirty(false); setGiftsState(giftsFromCommerce({ ...commerce, ...rewards })); toast.success(r.message ?? "Saved"); router.refresh(); }
       else toast.error(r.error);
     });
   }
 
-  const TABS: [Tab, string][] = [["store", "Store details"], ["checkout", "Shipping & checkout"], ["payments", "Payments"], ["membership", "Membership"], ["seo", "SEO"]];
-  const Status = ({ okay, label }: { okay: boolean; label: string }) => <div className="flex items-center justify-between gap-2 py-1.5 text-[14px]"><span>{label}</span>{okay ? <Tag tone="green">Configured</Tag> : <Tag tone="red">Missing</Tag>}</div>;
+  const Status = ({ okay, label }: { okay: boolean; label: string }) => <div className="flex min-h-11 items-center justify-between gap-2 text-[15px]"><span>{label}</span>{okay ? <Tag tone="green">Configured</Tag> : <Tag tone="red">Missing</Tag>}</div>;
 
   return (
     <div>
-      <div className="sticky top-14 z-30 -mx-4 mb-4 flex flex-wrap items-center gap-2 border-b border-black/10 bg-bg/95 px-4 py-2 md:-mx-6 md:px-6">
-        <div className="no-scrollbar flex flex-1 gap-1 overflow-x-auto text-[14px]" role="tablist">
-          {TABS.map(([k, l]) => <button key={k} type="button" role="tab" aria-selected={tab === k} onClick={() => setTab(k)} className={cn("whitespace-nowrap rounded-md px-3 py-1.5", tab === k ? "bg-ink text-bg" : "hover:bg-black/5")}>{l}</button>)}
-        </div>
-        <button type="button" className="btn btn-primary btn-sm" disabled={pending || !dirty} onClick={save}>{pending ? "Saving…" : dirty ? "Save changes" : "Saved"}</button>
-      </div>
+      <EditorTabs tabs={TABS} value={tab} onChange={setTab} />
+
+      {tab === "delivery" && (
+        <DeliveryRewards delivery={delivery} setDelivery={setDelivery} gifts={gifts} setGifts={setGifts} upsell={upsell} setUpsell={setUpsell} products={products} categories={categories} />
+      )}
 
       {tab === "store" && (
-        <div className="grid gap-6 lg:grid-cols-2">
-          <Panel title="Contact">
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div><label className="label" htmlFor="em">Email</label><input id="em" type="email" className="field" value={store.email} onChange={(e) => st({ email: e.target.value })} /></div>
-              <div><label className="label" htmlFor="ph">Phone</label><input id="ph" type="tel" className="field" value={store.phone} onChange={(e) => st({ phone: e.target.value })} /></div>
-              <div><label className="label" htmlFor="wa">WhatsApp number</label><input id="wa" type="tel" className="field" value={store.whatsapp} onChange={(e) => st({ whatsapp: e.target.value })} placeholder="919876543210" /><p className="hint">With country code, digits only. Adds a WhatsApp chat link.</p></div>
-              <div><label className="label" htmlFor="gst">GSTIN</label><input id="gst" className="field uppercase" value={store.gstin} onChange={(e) => st({ gstin: e.target.value.toUpperCase() })} /></div>
-              <div className="sm:col-span-2"><label className="label" htmlFor="ad">Address</label><textarea id="ad" rows={3} className="field" value={store.address} onChange={(e) => st({ address: e.target.value })} /></div>
-            </div>
-          </Panel>
-          <Panel title="Social links">
-            <div className="space-y-4">
-              {(["instagram", "facebook", "youtube", "pinterest"] as const).map((k) => (
-                <div key={k}><label className="label capitalize" htmlFor={k}>{k}</label><input id={k} type="url" className="field" value={store[k]} placeholder={`https://${k}.com/…`} onChange={(e) => st({ [k]: e.target.value } as Partial<typeof store>)} /></div>
-              ))}
-            </div>
-          </Panel>
-        </div>
+        <Panel title="Store details" description="Name, logo, contact details and social media links are all edited in one place.">
+          <Link href="/admin/appearance?tab=brand" className="flex min-h-11 items-center gap-3 rounded-lg border border-black/10 p-4 hover:border-black/25">
+            <span className="flex shrink-0 gap-1 text-muted" aria-hidden><SocialIcon name="instagram" size={20} /><SocialIcon name="whatsapp" size={20} /></span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[16px] font-semibold">Open Appearance → Brand, contact & social</span>
+              <span className="block text-[14px] text-muted">Email, phone, WhatsApp, address, GSTIN, Instagram, Facebook, YouTube, Pinterest, X and Google Maps.</span>
+            </span>
+            <ChevronRight size={20} aria-hidden />
+          </Link>
+        </Panel>
       )}
 
       {tab === "checkout" && (
         <div className="grid gap-6 lg:grid-cols-2">
-          <Panel title="Shipping">
+          <Panel title="Delivery times" description="Shown on product pages and order emails. The delivery charge is under Delivery & rewards.">
             <div className="grid gap-4 sm:grid-cols-2">
-              <Rupee id="fst" label="Free shipping above" value={money.freeShippingThreshold} onChange={(v) => mn({ freeShippingThreshold: v })} hint="0 = always free" />
-              <Rupee id="fs" label="Shipping fee below that" value={money.flatShipping} onChange={(v) => mn({ flatShipping: v })} />
               <Num id="dd" label="Dispatch within (days)" value={commerce.dispatchDays} max={30} onChange={(v) => cm({ dispatchDays: v })} />
-              <div />
               <Num id="dmin" label="Delivery days, from" value={commerce.deliveryDaysMin} min={1} max={30} onChange={(v) => cm({ deliveryDaysMin: v })} />
               <Num id="dmax" label="Delivery days, up to" value={commerce.deliveryDaysMax} min={1} max={45} onChange={(v) => cm({ deliveryDaysMax: v })} />
             </div>
           </Panel>
           <Panel title="Gifting">
             <Toggle label="Offer gift wrapping" checked={commerce.giftWrapEnabled} onChange={(v) => cm({ giftWrapEnabled: v })} />
-            {commerce.giftWrapEnabled && <div className="mt-3 max-w-xs"><Rupee id="gw" label="Gift wrap price" value={money.giftWrapPrice} onChange={(v) => mn({ giftWrapPrice: v })} hint="Paid membership tiers get it free" /></div>}
+            {commerce.giftWrapEnabled && <div className="mt-4 max-w-xs"><Rupee id="gw" label="Gift wrap price" value={money.giftWrapPrice} onChange={(v) => mn({ giftWrapPrice: v })} hint="Paid membership tiers get it free" /></div>}
           </Panel>
           <Panel title="Cart & inventory">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -140,7 +153,7 @@ export function SettingsForm({ initial, gateways, webhooks }: { initial: StoreSe
           </Panel>
           <Panel title="Returns">
             <Toggle label="Allow return requests" hint="Customers can request a return from their order page after delivery." checked={commerce.returnsEnabled} onChange={(v) => cm({ returnsEnabled: v })} />
-            {commerce.returnsEnabled && <div className="mt-3 max-w-xs"><Num id="rd" label="Return window (days after delivery)" value={commerce.returnDays} max={60} onChange={(v) => cm({ returnDays: v })} /></div>}
+            {commerce.returnsEnabled && <div className="mt-4 max-w-xs"><Num id="rd" label="Return window (days after delivery)" value={commerce.returnDays} max={60} onChange={(v) => cm({ returnDays: v })} /></div>}
           </Panel>
         </div>
       )}
@@ -199,20 +212,20 @@ export function SettingsForm({ initial, gateways, webhooks }: { initial: StoreSe
           <Panel title="Tiers" description="Sorted by minimum spend when saved. The first tier must start at ₹0.">
             <div className="space-y-3">
               {tiers.map((t, i) => (
-                <fieldset key={i} className="rounded-lg border border-black/10 p-3">
+                <fieldset key={i} className="rounded-lg border border-black/10 p-4">
                   <legend className="sr-only">Tier {i + 1}</legend>
-                  <div className="grid gap-3 sm:grid-cols-[1fr_160px_120px_110px_auto]">
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_160px_120px_96px_auto]">
                     <div><label className="label" htmlFor={`tn-${i}`}>Name</label><input id={`tn-${i}`} className="field" value={t.name} onChange={(e) => setTier(i, { name: e.target.value })} /></div>
                     <Rupee id={`ts-${i}`} label="Lifetime spend from" value={t.minSpend} onChange={(v) => setTier(i, { minSpend: v })} />
                     <div><label className="label" htmlFor={`td-${i}`}>Discount %</label><input id={`td-${i}`} type="number" min={0} max={50} step={0.5} className="field" value={t.discountPct} onChange={(e) => setTier(i, { discountPct: Math.max(0, Math.min(50, Number(e.target.value) || 0)) })} /></div>
                     <div><label className="label" htmlFor={`tc-${i}`}>Colour</label><input id={`tc-${i}`} type="color" className="h-12 w-full cursor-pointer rounded border border-black/10" value={t.color} onChange={(e) => setTier(i, { color: e.target.value })} /></div>
-                    <div className="flex items-end gap-1">
-                      <button type="button" aria-label="Move tier up" className="rounded p-2 hover:bg-black/5 disabled:opacity-30" disabled={i === 0} onClick={() => { setDirty(true); setTiers((ts) => { const n = [...ts]; [n[i - 1], n[i]] = [n[i], n[i - 1]]; return n; }); }}><ArrowUp size={15} /></button>
-                      <button type="button" aria-label="Move tier down" className="rounded p-2 hover:bg-black/5 disabled:opacity-30" disabled={i === tiers.length - 1} onClick={() => { setDirty(true); setTiers((ts) => { const n = [...ts]; [n[i + 1], n[i]] = [n[i], n[i + 1]]; return n; }); }}><ArrowDown size={15} /></button>
-                      <button type="button" aria-label="Delete tier" className="rounded p-2 text-sale hover:bg-red-50 disabled:opacity-30" disabled={tiers.length === 1} onClick={() => { setDirty(true); setTiers((ts) => ts.filter((_, k) => k !== i)); }}><Trash2 size={15} /></button>
+                    <div className="flex items-end gap-1 sm:col-span-2 xl:col-span-1">
+                      <button type="button" aria-label="Move tier up" className="icon-btn" disabled={i === 0} onClick={() => { setDirty(true); setTiers((ts) => { const n = [...ts]; [n[i - 1], n[i]] = [n[i], n[i - 1]]; return n; }); }}><ArrowUp size={20} aria-hidden /></button>
+                      <button type="button" aria-label="Move tier down" className="icon-btn" disabled={i === tiers.length - 1} onClick={() => { setDirty(true); setTiers((ts) => { const n = [...ts]; [n[i + 1], n[i]] = [n[i], n[i + 1]]; return n; }); }}><ArrowDown size={20} aria-hidden /></button>
+                      <button type="button" aria-label="Delete tier" className="icon-btn is-danger" disabled={tiers.length === 1} onClick={() => { setDirty(true); setTiers((ts) => ts.filter((_, k) => k !== i)); }}><Trash2 size={20} aria-hidden /></button>
                     </div>
                   </div>
-                  <div className="mt-3"><span className="label">Perks</span><StringListEditor items={t.perks} onChange={(p) => setTier(i, { perks: p })} placeholder="Free gift wrap" addLabel="Add perk" /></div>
+                  <div className="mt-4"><span className="label">Perks</span><StringListEditor items={t.perks} onChange={(p) => setTier(i, { perks: p })} placeholder="Free gift wrap" addLabel="Add perk" /></div>
                 </fieldset>
               ))}
               {tiers.length < 6 && <button type="button" className="btn btn-ghost btn-sm" onClick={() => { setDirty(true); setTiers((ts) => [...ts, { name: "", minSpend: "", discountPct: 0, perks: [], color: "#bda38b" }]); }}><Plus size={15} />Add tier</button>}
@@ -232,6 +245,7 @@ export function SettingsForm({ initial, gateways, webhooks }: { initial: StoreSe
           </div>
         </Panel>
       )}
+      <SaveBar dirty={dirty} pending={pending} onSave={save} onDiscard={onDiscard} />
     </div>
   );
 }

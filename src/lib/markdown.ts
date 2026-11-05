@@ -1,6 +1,6 @@
 import { escapeHtml } from "./escape";
 
-/** Tiny, safe markdown subset for product descriptions & CMS pages: ## headings, **bold**, *italic*, lists, links, paragraphs. */
+/** Tiny, safe markdown subset for product descriptions & CMS pages: ## headings, **bold**, *italic*, lists, links, ![images](url), paragraphs. */
 export function renderMarkdown(src: string): string {
   const lines = (src || "").replace(/\r\n/g, "\n").split("\n");
   const out: string[] = [];
@@ -8,6 +8,7 @@ export function renderMarkdown(src: string): string {
   let para: string[] = [];
   const inline = (s: string) =>
     escapeHtml(s)
+      .replace(/!\[([^\]]*)\]\(((?:https:\/\/|\/)[^)\s]+)\)/g, '<img src="$2" alt="$1" loading="lazy" decoding="async">')
       .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
       .replace(/(^|[^*])\*(?!\s)(.+?)\*(?!\*)/g, "$1<em>$2</em>")
       .replace(/\[([^\]]+)\]\(((?:https?:\/\/|\/|mailto:|tel:)[^)\s]+)\)/g, (_m, t, h) => `<a href="${h}"${h.startsWith("http") ? ' target="_blank" rel="noopener noreferrer"' : ""}>${t}</a>`);

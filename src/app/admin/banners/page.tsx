@@ -28,7 +28,7 @@ export default async function Banners({ searchParams }: { searchParams: Promise<
     <div>
       <PageHeader title="Banners & ads" description="Hero slides, promo blocks and popups. Schedule them for sales and festivals." actions={<Link href="/admin/banners?edit=new" className="btn btn-primary btn-sm">New banner</Link>} />
       {showForm && (
-        <Panel title={b ? "Edit banner" : "New banner"} className="mb-6" actions={<Link href="/admin/banners" className="text-[13px] underline">Close</Link>}>
+        <Panel title={b ? "Edit banner" : "New banner"} className="mb-6" actions={<Link href="/admin/banners" className="text-btn -mr-3 -mt-3">Close</Link>}>
           <ActionForm key={b?.id ?? "new"} action={saveBanner} className="grid gap-4 md:grid-cols-2">
             <input type="hidden" name="id" value={b?.id ?? ""} />
             <div><label className="label" htmlFor="pl">Placement</label><select id="pl" name="placement" className="field" defaultValue={b?.placement ?? "HERO"}>{PLACEMENTS.map((p) => <option key={p.v} value={p.v}>{p.label}</option>)}</select><p className="hint">{PLACEMENTS.map((p) => `${p.label}: ${p.hint}`).join(". ")}.</p></div>
@@ -71,8 +71,8 @@ export default async function Banners({ searchParams }: { searchParams: Promise<
                           <div className="flex items-start justify-between gap-2"><b className="text-[14px]">{x.title}</b>{live ? <Tag tone="green">Live</Tag> : x.isActive ? <Tag tone="amber">Scheduled</Tag> : <Tag>Off</Tag>}</div>
                           {(x.startsAt || x.endsAt) && <p className="mt-0.5 text-[12px] text-muted">{x.startsAt ? formatDate(x.startsAt) : "now"} → {x.endsAt ? formatDate(x.endsAt) : "no end"}</p>}
                           <div className="mt-2 flex gap-1 text-[13px]">
-                            <Link className="rounded px-2 py-1 hover:bg-black/5" href={`/admin/banners?edit=${x.id}`}>Edit</Link>
-                            <ConfirmButton className="rounded px-2 py-1 hover:bg-black/5" action={toggleBanner.bind(null, x.id, !x.isActive)}>{x.isActive ? "Hide" : "Show"}</ConfirmButton>
+                            <Link className="text-btn" href={`/admin/banners?edit=${x.id}`}>Edit</Link>
+                            <ConfirmButton className="text-btn" action={toggleBanner.bind(null, x.id, !x.isActive)}>{x.isActive ? "Hide" : "Show"}</ConfirmButton>
                           </div>
                         </div>
                       </li>

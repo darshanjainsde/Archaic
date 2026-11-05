@@ -144,7 +144,7 @@ export async function placeOrder(raw: unknown): Promise<PlaceOrderResult> {
         shippingAddress: address as object,
         estimatedDelivery: new Date(Date.now() + (s.commerce.dispatchDays + s.commerce.deliveryDaysMax) * 86400000),
         items: {
-          create: valid.map((l) => ({ productId: l.productId, name: l.name, slug: l.slug, image: l.image, unitPrice: l.unitPrice, quantity: l.quantity, selections: l.selections as object, personalization: l.personalization, lineTotal: l.lineTotal })),
+          create: [...valid, ...quote.giftLines].map((l) => ({ productId: l.productId, name: l.name, slug: l.slug, image: l.image, unitPrice: l.unitPrice, quantity: l.quantity, selections: l.selections as object, personalization: l.personalization, lineTotal: l.lineTotal })),
         },
         events: { create: { status: "PENDING_PAYMENT", note: input.paymentMethod === "COD" ? "Order received." : "Order created. Waiting for payment.", isPublic: input.paymentMethod !== "COD" } },
       },

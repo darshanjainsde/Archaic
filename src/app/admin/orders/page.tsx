@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/utils";
 import { fdate } from "@/lib/form-data";
-import { PageHeader, Table, OrderStatusBadge, PaymentBadge, Pagination, Empty } from "@/components/admin/ui";
+import { PageHeader, Table, OrderStatusBadge, PaymentBadge, Pagination, Empty, CardList, OrderCard } from "@/components/admin/ui";
 
 export const metadata = { title: "Orders" };
 const PER = 30;
@@ -45,24 +45,26 @@ export default async function Orders({ searchParams }: { searchParams: Promise<R
   return (
     <div>
       <PageHeader title="Orders" description={`${total} order${total === 1 ? "" : "s"}${sp.refund ? " with refund due" : ""}`} />
-      <div className="no-scrollbar -mx-4 mb-4 flex gap-1 overflow-x-auto px-4 text-[14px]">
+      <nav aria-label="Order status" className="mb-4 flex flex-wrap gap-2 text-[15px]">
         {TABS.map((t) => (
-          <Link key={t.v} href={`/admin/orders?${qs({ status: t.v, page: "" })}`} className={`whitespace-nowrap rounded-md px-3 py-1.5 ${tab.v === t.v && !sp.refund ? "bg-ink text-bg" : "hover:bg-black/5"}`}>{t.label}</Link>
+          <Link key={t.v} href={`/admin/orders?${qs({ status: t.v, page: "" })}`} aria-current={tab.v === t.v && !sp.refund ? "page" : undefined} className={`inline-flex min-h-11 items-center whitespace-nowrap rounded-full border px-4 ${tab.v === t.v && !sp.refund ? "border-ink bg-ink text-bg" : "border-black/15 bg-surface hover:border-black/30"}`}>{t.label}</Link>
         ))}
-        <Link href="/admin/orders?refund=1" className={`whitespace-nowrap rounded-md px-3 py-1.5 ${sp.refund ? "bg-ink text-bg" : "hover:bg-black/5"}`}>Refund due</Link>
-      </div>
-      <form className="mb-4 grid gap-2 sm:grid-cols-2 lg:grid-cols-[1fr_170px_160px_160px_auto]">
+        <Link href="/admin/orders?refund=1" aria-current={sp.refund ? "page" : undefined} className={`inline-flex min-h-11 items-center whitespace-nowrap rounded-full border px-4 ${sp.refund ? "border-ink bg-ink text-bg" : "border-black/15 bg-surface hover:border-black/30"}`}>Refund due</Link>
+      </nav>
+      <form className="mb-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_170px_170px_170px_auto]">
         {sp.status && <input type="hidden" name="status" value={sp.status} />}
-        <input name="q" defaultValue={q} placeholder="Order number, email, name, AWB" aria-label="Search orders" className="field !min-h-[40px] !py-2" />
-        <select name="payment" defaultValue={sp.payment ?? ""} aria-label="Payment status" className="field !min-h-[40px] !py-2">
+        <input name="q" defaultValue={q} type="search" placeholder="Order number, email, name, AWB…" aria-label="Search orders" autoComplete="off" className="field sm:col-span-2 lg:col-span-1" />
+        <select name="payment" defaultValue={sp.payment ?? ""} aria-label="Payment status" className="field">
           <option value="">Any payment</option><option value="PAID">Paid</option><option value="PENDING">Unpaid</option><option value="COD_PENDING">COD due</option><option value="FAILED">Failed</option><option value="REFUNDED">Refunded</option>
         </select>
-        <input type="date" name="from" defaultValue={sp.from} aria-label="From date" className="field !min-h-[40px] !py-2" />
-        <input type="date" name="to" defaultValue={sp.to} aria-label="To date" className="field !min-h-[40px] !py-2" />
-        <button className="btn btn-ink btn-sm !min-h-[40px]">Filter</button>
+        <label className="flex min-w-0 items-center gap-2"><span className="w-12 shrink-0 text-[14px] text-muted lg:sr-only">From</span><input type="date" name="from" defaultValue={sp.from} aria-label="From date" className="field min-w-0" /></label>
+        <label className="flex min-w-0 items-center gap-2"><span className="w-12 shrink-0 text-[14px] text-muted lg:sr-only">To</span><input type="date" name="to" defaultValue={sp.to} aria-label="To date" className="field min-w-0" /></label>
+        <button className="btn btn-ink sm:col-span-2 lg:col-span-1">Filter</button>
       </form>
       {orders.length === 0 ? <Empty>No orders match these filters.</Empty> : (
-        <Table>
+        <>
+        <CardList label="Orders">{orders.map((o) => <OrderCard key={o.id} o={{ ...o, items: o._count.items }} />)}</CardList>
+        <Table hideOnPhone>
           <thead><tr><th>Order</th><th>Date</th><th>Customer</th><th>Items</th><th>Status</th><th>Payment</th><th className="text-right">Total</th></tr></thead>
           <tbody>
             {orders.map((o) => (
@@ -78,6 +80,7 @@ export default async function Orders({ searchParams }: { searchParams: Promise<R
             ))}
           </tbody>
         </Table>
+        </>
       )}
       <Pagination page={page} pages={Math.ceil(total / PER)} makeHref={(p) => `/admin/orders?${qs({ page: String(p), ...(sp.refund ? { refund: "1" } : {}) })}`} />
     </div>

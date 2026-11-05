@@ -1,0 +1,51 @@
+/* Admin-only sizing and spacing standard. Everything is scoped to .admin-root so the storefront is untouched.
+   Scale: 4/8/12/16/24/32. Inputs 48px tall, buttons 44-48px, radii: panels 12, inputs/buttons 8, chips full. */
+@layer components {
+  .admin-root .btn { min-height: 48px; border-radius: 8px; padding: 0 16px; }
+  .admin-root .btn-sm { min-height: 44px; padding: 0 16px; font-size: 15px; }
+  .admin-root .btn-danger { background: var(--sale); color: #fff; }
+  .admin-root .btn-danger:hover:not(:disabled) { filter: brightness(1.08); }
+
+  .admin-root .field {
+    min-height: 48px; border-radius: 8px; padding: 11px 12px; font-size: 16px; line-height: 24px;
+    background: #fff; border-color: rgb(0 0 0 / .18);
+  }
+  .admin-root .field:focus { background: #fff; border-color: var(--ink); box-shadow: 0 0 0 1px var(--ink); }
+  .admin-root .field:disabled { background: var(--bg); color: var(--muted); }
+  .admin-root select.field { padding-right: 40px; background-color: #fff; color: var(--ink); }
+  .admin-root .label { margin-bottom: 8px; font-size: 15px; line-height: 20px; }
+  .admin-root .hint, .admin-root .error-text { margin-top: 4px; font-size: 14px; line-height: 20px; }
+
+  /* 44px icon buttons and text buttons: the hit area is the box, not the ink */
+  .admin-root .icon-btn {
+    display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+    width: 44px; height: 44px; border-radius: 8px; color: inherit;
+    transition: background-color .15s ease;
+  }
+  .admin-root .icon-btn:hover:not(:disabled) { background: rgb(0 0 0 / .06); }
+  .admin-root .icon-btn:disabled { opacity: .3; cursor: not-allowed; }
+  .admin-root .icon-btn.is-danger { color: var(--sale); }
+  .admin-root .icon-btn.is-danger:hover:not(:disabled) { background: rgb(179 38 30 / .08); }
+
+  .admin-root .text-btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    min-height: 44px; padding: 0 12px; border-radius: 8px;
+    font-size: 15px; font-weight: 500; white-space: nowrap; color: inherit;
+    transition: background-color .15s ease;
+  }
+  .admin-root .text-btn:hover:not(:disabled) { background: rgb(0 0 0 / .06); }
+  .admin-root .text-btn:disabled { opacity: .4; cursor: not-allowed; }
+  .admin-root .text-btn.is-danger { color: var(--sale); }
+  .admin-root .text-btn.is-danger:hover:not(:disabled) { background: rgb(179 38 30 / .08); }
+
+  /* Checkbox / toggle row: the whole row is the target */
+  .admin-root .check-row { display: flex; align-items: flex-start; gap: 12px; min-height: 44px; padding: 10px 0; cursor: pointer; }
+  .admin-root .check-row input[type="checkbox"], .admin-root .check-row input[type="radio"] { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--accent); }
+
+  .admin-root dialog::backdrop { background: rgb(0 0 0 / .45); }
+  .admin-root .prose-store img { border-radius: 8px; margin: 16px 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .admin-root *, .admin-root *::before, .admin-root *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
+  }
+}

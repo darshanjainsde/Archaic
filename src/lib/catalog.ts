@@ -1,6 +1,8 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
 import { db } from "./db";
+import { categoryWhere } from "./categories";
+import { parseOptions, parsePersonalization } from "./pricing";
 
 /** Shared product-listing queries for the storefront. */
 export const cardInclude = {
@@ -20,7 +22,11 @@ export type ProductCardData = {
   category: string | null;
   inStock: boolean;
   hasOptions: boolean;
+  /** True when the product can go straight into the bag from a card: no required option groups and no required personalisation. */
+  quickAdd: boolean;
   shortDescription: string | null;
+  /** Visible review average and count; null when there are none (or not loaded). */
+  rating: { avg: number; count: number } | null;
 };
 
 type WithCard = Prisma.ProductGetPayload<{ include: typeof cardInclude }>;
@@ -38,8 +44,22 @@ export function toCard(p: WithCard): ProductCardData {
     category: p.category?.name ?? null,
     inStock: !p.trackInventory || p.stock > 0,
     hasOptions: Array.isArray(p.options) && (p.options as unknown[]).length > 0,
+    quickAdd: !parseOptions(p.options).some((g) => g.required && g.values.length > 0) && !parsePersonalization(p.personalization)?.required,
     shortDescription: p.shortDescription,
+    rating: null,
   };
+}
+
+/** Adds review averages to a list of cards in one grouped query. */
+export async function withRatings(cards: ProductCardData[]): Promise<ProductCardData[]> {
+  if (!cards.length) return cards;
+  try {
+    const rows = await db.review.groupBy({ by: ["productId"], where: { productId: { in: cards.map((c) => c.id) }, isVisible: true }, _avg: { rating: true }, _count: { _all: true } });
+    const map = new Map(rows.map((r) => [r.productId, { avg: r._avg.rating ?? 0, count: r._count._all }]));
+    return cards.map((c) => ({ ...c, rating: map.get(c.id) ?? null }));
+  } catch {
+    return cards;
+  }
 }
 
 export async function listProducts(opts: { where?: Prisma.ProductWhereInput; orderBy?: Prisma.ProductOrderByWithRelationInput[]; take?: number; skip?: number }) {
@@ -50,7 +70,7 @@ export async function listProducts(opts: { where?: Prisma.ProductWhereInput; ord
     skip: opts.skip,
     include: cardInclude,
   });
-  return rows.map(toCard);
+  return withRatings(rows.map(toCard));
 }
 
 export type ProductSource = "featured" | "new" | "bestsellers" | "category" | "sale";
@@ -68,7 +88,7 @@ export async function productsForSource(source: ProductSource, limit: number, ca
     case "sale":
       return listProducts({ where: { compareAtPrice: { not: null } }, take: limit });
     case "category":
-      return listProducts({ where: categorySlug ? { category: { slug: categorySlug } } : {}, take: limit });
+      return listProducts({ where: categorySlug ? categoryWhere(categorySlug) : {}, take: limit });
   }
 }
 

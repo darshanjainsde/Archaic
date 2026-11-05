@@ -3,7 +3,8 @@ import { db } from "@/lib/db";
 import { getSettings, gatewayConfig } from "@/lib/settings";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/utils";
-import { PageHeader, Panel, OrderStatusBadge, PaymentBadge, Table } from "@/components/admin/ui";
+import { ChevronRight } from "lucide-react";
+import { PageHeader, Panel, OrderStatusBadge, PaymentBadge, Table, CardList, OrderCard } from "@/components/admin/ui";
 import type { OrderStatus } from "@prisma/client";
 
 export const metadata = { title: "Dashboard" };
@@ -70,26 +71,26 @@ export default async function Dashboard() {
       <PageHeader title="Dashboard" description={`${totalOrders} orders placed · ${customers} customers`} actions={<Link href="/admin/products/new" className="btn btn-primary btn-sm">Add product</Link>} />
 
       {warnings.length > 0 && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 p-4 text-[14px] text-amber-950">
+        <div className="rounded-xl border border-amber-300 bg-amber-50 p-4 text-[15px] text-amber-950">
           <b>Setup needed</b>
-          <ul className="mt-1 list-disc pl-5">{warnings.map((w) => <li key={w}>{w}</li>)}</ul>
-          <Link href="/admin/settings" className="mt-2 inline-block underline">Open settings</Link>
+          <ul className="mt-2 list-disc space-y-1 pl-5">{warnings.map((w) => <li key={w}>{w}</li>)}</ul>
+          <Link href="/admin/settings?tab=payments" className="text-btn -ml-3 mt-2 underline underline-offset-4">Open settings</Link>
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {stats.map((st) => {
           const inner = (
             <>
-              <div className="text-[13px] text-muted">{st.label}</div>
-              <div className="mt-1 text-2xl font-semibold tabular-nums">{st.value}</div>
-              <div className="text-[13px] text-muted">{st.sub}</div>
+              <div className="text-[14px] leading-5 text-muted">{st.label}</div>
+              <div className="mt-1 break-words text-[clamp(18px,5vw,24px)] font-semibold leading-tight tabular-nums">{st.value}</div>
+              <div className="mt-1 text-[13px] text-muted">{st.sub}</div>
             </>
           );
           return st.href ? (
-            <Link key={st.label} href={st.href} className="rounded-lg border border-black/10 bg-surface p-4 hover:border-black/25">{inner}</Link>
+            <Link key={st.label} href={st.href} className="min-w-0 rounded-xl border border-black/10 bg-surface p-4 hover:border-black/25">{inner}</Link>
           ) : (
-            <div key={st.label} className="rounded-lg border border-black/10 bg-surface p-4">{inner}</div>
+            <div key={st.label} className="min-w-0 rounded-xl border border-black/10 bg-surface p-4">{inner}</div>
           );
         })}
       </div>
@@ -111,7 +112,7 @@ export default async function Dashboard() {
             <text x="600" y="176" fontSize="11" textAnchor="end" fill="currentColor" opacity=".6">{days[29].label}</text>
           </svg>
           <details className="mt-2 text-[14px]">
-            <summary className="cursor-pointer text-muted">Show as table</summary>
+            <summary className="inline-flex min-h-11 cursor-pointer items-center text-muted">Show as a table</summary>
             <table className="mt-2 w-full text-[13px]">
               <tbody>{days.filter((d) => d.total > 0).map((d) => <tr key={d.key}><td className="py-0.5">{d.label}</td><td className="text-right tabular-nums">{formatMoney(d.total)}</td></tr>)}</tbody>
             </table>
@@ -120,25 +121,31 @@ export default async function Dashboard() {
 
         <div className="space-y-6">
           <Panel title="Needs attention">
-            <ul className="space-y-2 text-[14px]">
-              <li className="flex justify-between"><Link className="hover:underline" href="/admin/orders?status=CONFIRMED">Orders to ship</Link><b className="tabular-nums">{toShip}</b></li>
-              <li className="flex justify-between"><Link className="hover:underline" href="/admin/orders?status=PENDING_PAYMENT">Awaiting payment</Link><b className="tabular-nums">{pending}</b></li>
-              <li className="flex justify-between"><Link className="hover:underline" href="/admin/orders?refund=1">Refund due</Link><b className={refundDue ? "text-sale tabular-nums" : "tabular-nums"}>{refundDue}</b></li>
+            <ul className="-mx-2 text-[15px]">
+              {[
+                { href: "/admin/orders?status=CONFIRMED", label: "Orders to ship", n: toShip },
+                { href: "/admin/orders?status=PENDING_PAYMENT", label: "Awaiting payment", n: pending },
+                { href: "/admin/orders?refund=1", label: "Refund due", n: refundDue, bad: true },
+              ].map((x) => (
+                <li key={x.href}><Link className="flex min-h-12 items-center gap-2 rounded-lg px-2 hover:bg-black/5" href={x.href}><span className="flex-1">{x.label}</span><b className={x.bad && x.n ? "text-sale tabular-nums" : "tabular-nums"}>{x.n}</b><ChevronRight size={18} aria-hidden className="text-muted" /></Link></li>
+              ))}
             </ul>
           </Panel>
           <Panel title="Low stock" description={`At or below ${s.commerce.lowStockThreshold} units`}>
-            {lowStock.length === 0 ? <p className="text-[14px] text-muted">Everything is well stocked.</p> : (
-              <ul className="space-y-1.5 text-[14px]">
-                {lowStock.map((p) => <li key={p.id} className="flex justify-between gap-2"><Link className="truncate hover:underline" href={`/admin/products/${p.id}`}>{p.name}</Link><b className={p.stock === 0 ? "text-sale" : ""}>{p.stock}</b></li>)}
+            {lowStock.length === 0 ? <p className="text-[15px] text-muted">Everything is well stocked.</p> : (
+              <ul className="-mx-2 text-[15px]">
+                {lowStock.map((p) => <li key={p.id}><Link className="flex min-h-12 items-center gap-2 rounded-lg px-2 hover:bg-black/5" href={`/admin/products/${p.id}`}><span className="min-w-0 flex-1 truncate">{p.name}</span><b className={p.stock === 0 ? "text-sale tabular-nums" : "tabular-nums"}>{p.stock} left</b><ChevronRight size={18} aria-hidden className="text-muted" /></Link></li>)}
               </ul>
             )}
           </Panel>
         </div>
       </div>
 
-      <Panel title="Recent orders" actions={<Link href="/admin/orders" className="text-[14px] underline">All orders</Link>}>
-        {recent.length === 0 ? <p className="text-[14px] text-muted">No orders yet.</p> : (
-          <Table>
+      <Panel title="Recent orders" actions={<Link href="/admin/orders" className="text-btn -mr-3 -mt-3 underline underline-offset-4">All orders</Link>}>
+        {recent.length === 0 ? <p className="text-[15px] text-muted">No orders yet.</p> : (
+          <>
+          <CardList label="Recent orders">{recent.map((o) => <OrderCard key={o.id} o={o} />)}</CardList>
+          <Table hideOnPhone>
             <thead><tr><th>Order</th><th>Customer</th><th>Date</th><th>Status</th><th>Payment</th><th className="text-right">Total</th></tr></thead>
             <tbody>
               {recent.map((o) => (
@@ -153,6 +160,7 @@ export default async function Dashboard() {
               ))}
             </tbody>
           </Table>
+          </>
         )}
       </Panel>
     </div>

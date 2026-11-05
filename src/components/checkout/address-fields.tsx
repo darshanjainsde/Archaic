@@ -21,11 +21,11 @@ export function AddressFields({ value, onChange, errors = {}, prefix = "addr" }:
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       {f("name", "Full name", { autoComplete: "name", required: true, maxLength: 80 })}
-      {f("phone", "Mobile number", { autoComplete: "tel-national", inputMode: "tel", required: true, maxLength: 14, placeholder: "10-digit mobile" })}
+      {f("phone", "Mobile number", { type: "tel", autoComplete: "tel-national", inputMode: "tel", required: true, maxLength: 14, placeholder: "10-digit mobile" })}
       {f("line1", "House / flat, street", { autoComplete: "address-line1", required: true, maxLength: 160 }, "sm:col-span-2")}
       {f("line2", "Area, locality (optional)", { autoComplete: "address-line2", maxLength: 160 }, "sm:col-span-2")}
-      {f("landmark", "Landmark (optional)", { maxLength: 100 })}
-      {f("pincode", "Pincode", { autoComplete: "postal-code", inputMode: "numeric", required: true, maxLength: 6, pattern: "[0-9]{6}" })}
+      {f("landmark", "Landmark (optional)", { autoComplete: "off", maxLength: 100 })}
+      {f("pincode", "Pincode", { autoComplete: "postal-code", inputMode: "numeric", enterKeyHint: "next", required: true, maxLength: 6, pattern: "[0-9]{6}" })}
       {f("city", "City", { autoComplete: "address-level2", required: true, maxLength: 60 })}
       <div>
         <label htmlFor={`${prefix}-state`} className="label">State</label>

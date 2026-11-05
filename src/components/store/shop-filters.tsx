@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Sheet } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
-type Cat = { slug: string; name: string; count: number };
+type Cat = { slug: string; name: string; count: number; /** true for a sub-category (indented under its parent) */ sub?: boolean };
 
 export const SORTS = [
   { value: "featured", label: "Featured" },
@@ -39,7 +39,7 @@ export function SortSelect() {
   return (
     <div className="flex items-center gap-2">
       <label htmlFor="sort" className="hidden text-[15px] sm:block">Sort</label>
-      <select id="sort" className="field !min-h-[42px] !py-2 text-[15px]" value={params.get("sort") ?? "featured"} onChange={(e) => push({ sort: e.target.value === "featured" ? null : e.target.value })}>
+      <select id="sort" className="field !min-h-11 !py-2 text-[15px]" value={params.get("sort") ?? "featured"} onChange={(e) => push({ sort: e.target.value === "featured" ? null : e.target.value })}>
         {SORTS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
       </select>
     </div>
@@ -65,11 +65,11 @@ function FilterBody({ categories, onDone }: { categories: Cat[]; onDone?: () => 
         <legend className="mb-3 font-display text-[22px]">Category</legend>
         <ul className="flex flex-col gap-1 text-[16px]">
           <li>
-            <button type="button" onClick={() => { push({ category: null }); onDone?.(); }} className={cn("w-full py-1.5 text-left hover:underline underline-offset-4", !active && "font-bold underline")} aria-pressed={!active}>All products</button>
+            <button type="button" onClick={() => { push({ category: null }); onDone?.(); }} className={cn("w-full py-2.5 text-left hover:underline underline-offset-4", !active && "font-bold underline")} aria-pressed={!active}>All products</button>
           </li>
           {categories.map((c) => (
             <li key={c.slug}>
-              <button type="button" onClick={() => { push({ category: c.slug }); onDone?.(); }} className={cn("flex w-full justify-between py-1.5 text-left hover:underline underline-offset-4", active === c.slug && "font-bold underline")} aria-pressed={active === c.slug}>
+              <button type="button" onClick={() => { push({ category: c.slug }); onDone?.(); }} className={cn("flex min-h-11 w-full items-center justify-between text-left hover:underline underline-offset-4", c.sub && "pl-4 text-[15px]", active === c.slug && "font-bold underline")} aria-pressed={active === c.slug}>
                 <span>{c.name}</span><span className="text-muted">{c.count}</span>
               </button>
             </li>
@@ -86,10 +86,10 @@ function FilterBody({ categories, onDone }: { categories: Cat[]; onDone?: () => 
             <label className="sr-only" htmlFor="max-price">Maximum price</label>
             <input id="max-price" inputMode="numeric" pattern="[0-9]*" className="field" placeholder="Max" value={max} onChange={(e) => setMax(e.target.value.replace(/\D/g, ""))} />
           </div>
-          <button type="submit" className="btn btn-ghost btn-sm mt-3 w-full">Apply price</button>
+          <button type="submit" className="btn btn-ghost mt-3 w-full">Apply price</button>
         </fieldset>
       </form>
-      <label className="flex cursor-pointer items-center gap-3 text-[16px]">
+      <label className="flex min-h-11 cursor-pointer items-center gap-3 text-[16px]">
         <input type="checkbox" className="h-5 w-5 accent-[var(--accent)]" checked={inStock} onChange={(e) => { push({ inStock: e.target.checked ? "1" : null }); }} />
         In stock only
       </label>
@@ -108,7 +108,7 @@ export function MobileFilterButton({ categories, activeCount }: { categories: Ca
   const [open, setOpen] = useState(false);
   return (
     <>
-      <button type="button" className="btn btn-ghost btn-sm lg:hidden" onClick={() => setOpen(true)}>
+      <button type="button" className="btn btn-ghost btn-sm !min-h-11 lg:hidden" onClick={() => setOpen(true)}>
         <SlidersHorizontal size={16} aria-hidden /> Filters{activeCount ? ` (${activeCount})` : ""}
       </button>
       <Sheet open={open} onClose={() => setOpen(false)} side="bottom" title="Filters">

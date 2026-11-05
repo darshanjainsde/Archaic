@@ -109,8 +109,16 @@ model Category {
   image       String?
   sortOrder   Int       @default(0)
   isVisible   Boolean   @default(true)
+  /// Shown in the header menu (as a sub-category under its parent, or wherever the admin adds it)
+  showInMenu  Boolean   @default(true)
+  /// Set for sub-categories. Only two levels: category -> sub-category.
+  parentId    String?
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children    Category[] @relation("CategoryTree")
   createdAt   DateTime  @default(now())
   products    Product[]
+
+  @@index([parentId])
 }
 
 /// Options are stored as JSON: OptionGroup[] (see src/lib/types.ts)

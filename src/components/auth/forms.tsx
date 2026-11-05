@@ -11,9 +11,9 @@ export function LoginForm({ next }: { next: string }) {
     <form action={action} className="space-y-5" noValidate>
       <input type="hidden" name="next" value={next} />
       <FormAlert error={state?.error} />
-      <TextField id="email" name="email" label="Email" type="email" inputMode="email" autoComplete="email" required defaultValue={state?.values?.email} key={state?.values?.email} />
+      <TextField id="email" name="email" label="Email" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} required defaultValue={state?.values?.email} key={state?.values?.email} />
       <PasswordInput id="password" name="password" label="Password" autoComplete="current-password" />
-      <div className="flex justify-end"><Link href="/forgot-password" className="text-[15px] underline">Forgot password?</Link></div>
+      <div className="-my-2 flex justify-end"><Link href="/forgot-password" className="tap-y text-[15px] underline">Forgot password?</Link></div>
       <SubmitButton className="w-full" pendingText="Signing in…">Sign in</SubmitButton>
       <p className="text-[16px]">New here? <Link href={`/register${next ? `?next=${encodeURIComponent(next)}` : ""}`} className="font-semibold underline">Create an account</Link></p>
     </form>
@@ -29,11 +29,11 @@ export function RegisterForm({ next }: { next: string }) {
       <input type="hidden" name="next" value={next} />
       <FormAlert error={state?.error} />
       <TextField id="name" name="name" label="Full name" autoComplete="name" required error={fe.name} defaultValue={v.name} key={`n${v.name}`} maxLength={80} />
-      <TextField id="email" name="email" label="Email" type="email" inputMode="email" autoComplete="email" required error={fe.email} defaultValue={v.email} key={`e${v.email}`} />
+      <TextField id="email" name="email" label="Email" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} required error={fe.email} defaultValue={v.email} key={`e${v.email}`} />
       <TextField id="phone" name="phone" label="Mobile number (optional)" type="tel" inputMode="tel" autoComplete="tel-national" error={fe.phone} defaultValue={v.phone} key={`p${v.phone}`} maxLength={14} />
       <PasswordInput id="password" name="password" label="Password" autoComplete="new-password" error={fe.password} describedBy="pw-hint" />
       <p id="pw-hint" className="hint -mt-3">At least 8 characters, with a letter and a number.</p>
-      <label className="flex items-start gap-3 text-[16px]">
+      <label className="flex cursor-pointer items-start gap-3 text-[16px]">
         <input type="checkbox" name="marketing" className="mt-1 h-5 w-5 accent-[var(--accent)]" />
         <span>Send me letters about new scents and offers (twice a month at most)</span>
       </label>
@@ -48,7 +48,7 @@ export function ForgotForm() {
   if (state?.ok) return <FormAlert message={state.message} />;
   return (
     <form action={action} className="space-y-5" noValidate>
-      <TextField id="email" name="email" label="Email" type="email" inputMode="email" autoComplete="email" required error={state?.fieldErrors?.email} />
+      <TextField id="email" name="email" label="Email" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} required error={state?.fieldErrors?.email} />
       <SubmitButton className="w-full" pendingText="Sending…">Send reset link</SubmitButton>
       <p className="text-[16px]"><Link href="/login" className="underline">Back to sign in</Link></p>
     </form>

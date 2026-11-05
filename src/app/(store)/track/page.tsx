@@ -47,11 +47,11 @@ export default async function TrackPage({ searchParams }: { searchParams: Promis
           <form className="space-y-4 bg-surface p-6" style={{ borderRadius: "var(--radius)" }} method="get">
             <div>
               <label htmlFor="t-order" className="label">Order number</label>
-              <input id="t-order" name="order" className="field uppercase" defaultValue={number} placeholder="AC10001" autoComplete="off" autoCapitalize="characters" required maxLength={20} aria-describedby={error ? "t-err" : undefined} />
+              <input id="t-order" name="order" className="field uppercase" defaultValue={number} placeholder="e.g. AC10001" autoComplete="off" autoCapitalize="characters" spellCheck={false} required maxLength={20} aria-describedby={error ? "t-err" : undefined} />
             </div>
             <div>
               <label htmlFor="t-contact" className="label">Email or mobile number</label>
-              <input id="t-contact" name="contact" className="field" defaultValue={contact} autoComplete="email" required maxLength={160} aria-describedby={error ? "t-err" : undefined} />
+              <input id="t-contact" name="contact" className="field" defaultValue={contact} autoComplete="email" autoCapitalize="none" spellCheck={false} placeholder="The one used at checkout" required maxLength={160} aria-describedby={error ? "t-err" : undefined} />
             </div>
             {error && <p id="t-err" className="error-text text-[15px]" role="alert">{error}</p>}
             <button type="submit" className="btn btn-primary w-full">Track order</button>

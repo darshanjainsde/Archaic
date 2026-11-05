@@ -36,8 +36,8 @@ export default async function Reviews({ searchParams }: { searchParams: Promise<
               <p className="mt-1 whitespace-pre-line text-[14px]">{r.body}</p>
               <p className="mt-2 text-[13px] text-muted">{r.user.name} ({r.user.email}) on <a className="underline" href={`/product/${r.product.slug}`} target="_blank" rel="noreferrer">{r.product.name}</a></p>
               <div className="mt-2 flex gap-1 text-[13px]">
-                <ConfirmButton className="rounded px-2 py-1 hover:bg-black/5" action={setReviewVisible.bind(null, r.id, !r.isVisible)}>{r.isVisible ? "Hide" : "Show"}</ConfirmButton>
-                <ConfirmButton className="rounded px-2 py-1 text-sale hover:bg-red-50" confirmText="Delete this review permanently?" action={deleteReview.bind(null, r.id)}>Delete</ConfirmButton>
+                <ConfirmButton className="text-btn" action={setReviewVisible.bind(null, r.id, !r.isVisible)}>{r.isVisible ? "Hide" : "Show"}</ConfirmButton>
+                <ConfirmButton className="text-btn is-danger" danger confirmTitle="Delete this review?" confirmText="It is removed for good. To keep it but hide it from the store, use Hide." action={deleteReview.bind(null, r.id)}>Delete</ConfirmButton>
               </div>
             </li>
           ))}

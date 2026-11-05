@@ -1,6 +1,7 @@
 "use server";
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
+import { touchCategories } from "@/lib/categories";
 import { db } from "@/lib/db";
 import { assertAdmin } from "@/lib/auth";
 import { slugify } from "@/lib/utils";
@@ -12,28 +13,60 @@ type R = ActionResult<{ redirect?: string }>;
 const ok = (message: string, redirect?: string): R => ({ ok: true, message, data: redirect ? { redirect } : undefined });
 
 /* ---------------- Categories ---------------- */
-const catSchema = z.object({ name: z.string().min(1, "Name is required").max(80), slug: z.string().min(1).max(80), description: z.string().max(500), image: z.string().max(1000), sortOrder: z.number().int().min(0).max(9999), isVisible: z.boolean() });
+const catSchema = z.object({ name: z.string().min(1, "Name is required").max(80), slug: z.string().min(1).max(80), description: z.string().max(500), image: z.string().max(1000), sortOrder: z.number().int().min(0).max(9999), isVisible: z.boolean(), showInMenu: z.boolean(), parentId: z.string().max(40) });
 
 export async function saveCategory(_: R | null, fd: FormData): Promise<R> {
   await assertAdmin();
   const id = fstr(fd, "id") || null;
-  const parsed = catSchema.safeParse({ name: fstr(fd, "name"), slug: slugify(fstr(fd, "slug") || fstr(fd, "name")), description: fstr(fd, "description"), image: fstr(fd, "image"), sortOrder: fint(fd, "sortOrder"), isVisible: fbool(fd, "isVisible") });
+  const parsed = catSchema.safeParse({ name: fstr(fd, "name"), slug: slugify(fstr(fd, "slug") || fstr(fd, "name")), description: fstr(fd, "description"), image: fstr(fd, "image"), sortOrder: fint(fd, "sortOrder"), isVisible: fbool(fd, "isVisible"), showInMenu: fbool(fd, "showInMenu"), parentId: fstr(fd, "parentId") });
   if (!parsed.success) return { ok: false, error: firstError(parsed.error.issues), fieldErrors: zodFieldErrors(parsed.error.issues) };
   const d = parsed.data;
   const clash = await db.category.findUnique({ where: { slug: d.slug } });
   if (clash && clash.id !== id) return { ok: false, error: `The URL “${d.slug}” is already used by ${clash.name}` };
-  const data = { ...d, description: d.description || null, image: d.image || null };
+  const parentId = d.parentId || null;
+  if (parentId) {
+    if (parentId === id) return { ok: false, error: "A category cannot be inside itself" };
+    const parent = await db.category.findUnique({ where: { id: parentId }, select: { parentId: true, name: true } });
+    if (!parent) return { ok: false, error: "That parent category no longer exists" };
+    if (parent.parentId) return { ok: false, error: `${parent.name} is already a sub-category. Only two levels are allowed: category → sub-category.` };
+    if (id) {
+      const kids = await db.category.count({ where: { parentId: id } });
+      if (kids > 0) return { ok: false, error: `This category has ${kids} sub-categories, so it cannot be moved under another one. Move them out first.` };
+    }
+  }
+  const data = { name: d.name, slug: d.slug, sortOrder: d.sortOrder, isVisible: d.isVisible, showInMenu: d.showInMenu, parentId, description: d.description || null, image: d.image || null };
   if (id) await db.category.update({ where: { id }, data });
   else await db.category.create({ data });
   revalidatePath("/", "layout");
+  touchCategories();
   return ok(id ? "Category updated" : "Category created");
 }
 
 export async function deleteCategory(id: string): Promise<R> {
   await assertAdmin();
-  await db.$transaction([db.product.updateMany({ where: { categoryId: id }, data: { categoryId: null } }), db.category.delete({ where: { id } })]);
+  await db.$transaction([
+    db.product.updateMany({ where: { categoryId: id }, data: { categoryId: null } }),
+    db.category.updateMany({ where: { parentId: id }, data: { parentId: null } }),
+    db.category.delete({ where: { id } }),
+  ]);
   revalidatePath("/", "layout");
-  return ok("Category deleted. Its products now have no category.");
+  touchCategories();
+  return ok("Category deleted. Its products now have no category; its sub-categories are now top-level.");
+}
+
+/** Set exactly which products belong to a category (ticked = in, unticked = removed from it). */
+export async function assignProductsToCategory(categoryId: string, productIds: string[]): Promise<R> {
+  await assertAdmin();
+  const cat = await db.category.findUnique({ where: { id: categoryId }, select: { id: true, name: true } });
+  if (!cat) return { ok: false, error: "Category not found" };
+  const ids = [...new Set(productIds.filter((x) => typeof x === "string" && x.length < 40))].slice(0, 2000);
+  await db.$transaction([
+    db.product.updateMany({ where: { categoryId, id: { notIn: ids } }, data: { categoryId: null } }),
+    db.product.updateMany({ where: { id: { in: ids } }, data: { categoryId } }),
+  ]);
+  revalidatePath("/", "layout");
+  touchCategories();
+  return ok(`${ids.length} product${ids.length === 1 ? "" : "s"} now in ${cat.name}`);
 }
 
 /* ---------------- Coupons ---------------- */

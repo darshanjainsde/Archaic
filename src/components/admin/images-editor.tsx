@@ -1,9 +1,11 @@
 "use client";
 import { useRef, useState } from "react";
 import { toast } from "sonner";
-import { ChevronLeft, ChevronRight, ImagePlus, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, ImagePlus, Star, Trash2 } from "lucide-react";
 import { Img } from "@/components/ui/img";
 import { uploadFiles } from "./upload";
+import { Progress } from "./image-field";
+import { useConfirm } from "./confirm";
 import { cn } from "@/lib/utils";
 
 export type EditableImage = { url: string; alt: string };
@@ -12,12 +14,14 @@ export function ImagesEditor({ images, onChange }: { images: EditableImage[]; on
   const [progress, setProgress] = useState<number | null>(null);
   const [drag, setDrag] = useState(false);
   const [paste, setPaste] = useState("");
-  const input = useRef<HTMLInputElement>(null);
+  const pick = useRef<HTMLInputElement>(null);
+  const cam = useRef<HTMLInputElement>(null);
+  const confirm = useConfirm();
 
   async function add(files: File[]) {
-    const imgs = files.filter((f) => f.type.startsWith("image/"));
+    const imgs = files.filter((f) => f.type.startsWith("image/") || /\.(heic|heif)$/i.test(f.name));
     if (!imgs.length) return;
-    if (images.length + imgs.length > 20) return toast.error("A product can have up to 20 images");
+    if (images.length + imgs.length > 20) return toast.error("A product can have up to 20 images. Remove some first.");
     setProgress(0);
     try {
       const urls = await uploadFiles(imgs.slice(0, 10), setProgress);
@@ -27,60 +31,76 @@ export function ImagesEditor({ images, onChange }: { images: EditableImage[]; on
       toast.error((e as Error).message);
     } finally {
       setProgress(null);
-      if (input.current) input.current.value = "";
+      if (pick.current) pick.current.value = "";
+      if (cam.current) cam.current.value = "";
     }
   }
-  const move = (i: number, d: -1 | 1) => {
-    const j = i + d;
-    if (j < 0 || j >= images.length) return;
+  const move = (i: number, j: number) => {
+    if (j < 0 || j >= images.length || i === j) return;
     const next = [...images];
-    [next[i], next[j]] = [next[j], next[i]];
+    const [x] = next.splice(i, 1);
+    next.splice(j, 0, x);
     onChange(next);
   };
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div
         onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
         onDragLeave={() => setDrag(false)}
         onDrop={(e) => { e.preventDefault(); setDrag(false); add(Array.from(e.dataTransfer.files)); }}
-        className={cn("flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-6 text-center text-[14px]", drag ? "border-ink bg-field" : "border-black/15")}
+        className={cn("flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed p-6 text-center", drag ? "border-ink bg-field" : "border-black/15")}
       >
-        <ImagePlus size={22} aria-hidden />
-        <div>{progress !== null ? `Uploading… ${progress}%` : "Drag photos here, or"}</div>
-        <button type="button" className="btn btn-ghost btn-sm" disabled={progress !== null} onClick={() => input.current?.click()}>Choose files</button>
-        <div className="text-[12px] text-muted">JPG, PNG, WebP, AVIF or GIF · up to 5 MB each. The first image is the cover.</div>
-        <input ref={input} type="file" multiple accept="image/jpeg,image/png,image/webp,image/avif,image/gif" className="hidden" onChange={(e) => add(Array.from(e.target.files ?? []))} />
+        {progress !== null ? <div className="w-full max-w-sm"><Progress pct={progress} /></div> : (
+          <>
+            <ImagePlus size={28} aria-hidden />
+            <p className="text-[15px]">Add photos from your phone or computer<span className="hidden pointer-fine:inline">, or drag them here</span></p>
+            <div className="flex flex-wrap justify-center gap-2">
+              <button type="button" className="btn btn-primary btn-sm" onClick={() => pick.current?.click()}><ImagePlus size={18} aria-hidden />Choose photos</button>
+              <button type="button" className="btn btn-ghost btn-sm hidden pointer-coarse:inline-flex" onClick={() => cam.current?.click()}><Camera size={18} aria-hidden />Take photo</button>
+            </div>
+          </>
+        )}
+        <p className="text-[14px] text-muted">Up to 10 at a time. Large phone photos are resized for you. The first image is the cover.</p>
+        <input ref={pick} type="file" multiple accept="image/*" className="hidden" onChange={(e) => add(Array.from(e.target.files ?? []))} />
+        <input ref={cam} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => add(Array.from(e.target.files ?? []))} />
       </div>
-      <div className="flex gap-2">
-        <input className="field !min-h-[40px] !py-2 text-[14px]" placeholder="Paste an image URL" aria-label="Image URL" value={paste} onChange={(e) => setPaste(e.target.value)} />
-        <button type="button" className="btn btn-ghost btn-sm !min-h-[40px]" onClick={() => {
-          const u = paste.trim();
-          if (!/^(https:\/\/|\/)/.test(u)) return toast.error("Use an https:// URL or a /path");
-          onChange([...images, { url: u, alt: "" }]);
-          setPaste("");
-        }}>Add</button>
-      </div>
+
       {images.length > 0 && (
-        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {images.map((im, i) => (
-            <li key={im.url + i} className="rounded-lg border border-black/10 bg-surface p-2">
-              <div className="relative aspect-[4/5] overflow-hidden rounded bg-field">
-                <Img src={im.url} alt={im.alt} fill sizes="200px" className="object-cover" />
-                {i === 0 && <span className="absolute left-1 top-1 rounded bg-ink px-1.5 text-[11px] font-semibold text-bg">Cover</span>}
+            <li key={im.url + i} className="min-w-0 rounded-lg border border-black/10 bg-surface p-3">
+              <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-field">
+                <Img src={im.url} alt={im.alt || `Product image ${i + 1}`} fill sizes="(max-width: 640px) 100vw, 320px" className="object-cover" />
+                <span className="absolute left-2 top-2 rounded-full bg-ink px-2.5 py-0.5 text-[12px] font-semibold text-bg">{i === 0 ? "Cover" : `Photo ${i + 1}`}</span>
               </div>
-              <input className="field mt-2 !min-h-[34px] !py-1 text-[13px]" placeholder="Alt text" aria-label={`Alt text for image ${i + 1}`} value={im.alt} onChange={(e) => onChange(images.map((x, k) => (k === i ? { ...x, alt: e.target.value } : x)))} />
-              <div className="mt-1 flex justify-between">
+              <label className="sr-only" htmlFor={`alt-${i}`}>Describe image {i + 1}</label>
+              <input id={`alt-${i}`} className="field mt-3" placeholder="Describe it, e.g. Amber jar, lid off…" autoComplete="off" value={im.alt} onChange={(e) => onChange(images.map((x, k) => (k === i ? { ...x, alt: e.target.value } : x)))} />
+              <div className="mt-2 flex flex-wrap items-center justify-between gap-1">
                 <div className="flex">
-                  <button type="button" aria-label="Move left" className="rounded p-1.5 hover:bg-black/5 disabled:opacity-30" disabled={i === 0} onClick={() => move(i, -1)}><ChevronLeft size={16} /></button>
-                  <button type="button" aria-label="Move right" className="rounded p-1.5 hover:bg-black/5 disabled:opacity-30" disabled={i === images.length - 1} onClick={() => move(i, 1)}><ChevronRight size={16} /></button>
+                  <button type="button" aria-label={`Move image ${i + 1} earlier`} className="icon-btn" disabled={i === 0} onClick={() => move(i, i - 1)}><ArrowLeft size={20} aria-hidden /></button>
+                  <button type="button" aria-label={`Move image ${i + 1} later`} className="icon-btn" disabled={i === images.length - 1} onClick={() => move(i, i + 1)}><ArrowRight size={20} aria-hidden /></button>
+                  {i > 0 && <button type="button" className="text-btn" onClick={() => move(i, 0)}><Star size={18} aria-hidden />Make cover</button>}
                 </div>
-                <button type="button" aria-label="Remove image" className="rounded p-1.5 text-sale hover:bg-red-50" onClick={() => onChange(images.filter((_, k) => k !== i))}><Trash2 size={16} /></button>
+                <button type="button" aria-label={`Remove image ${i + 1}`} className="icon-btn is-danger" onClick={async () => { if (await confirm({ title: "Remove this image?", body: "It is removed from the product when you save.", confirmLabel: "Remove", danger: true })) onChange(images.filter((_, k) => k !== i)); }}><Trash2 size={20} aria-hidden /></button>
               </div>
             </li>
           ))}
         </ul>
       )}
+
+      <details>
+        <summary className="inline-flex min-h-11 cursor-pointer items-center text-[14px] text-muted underline underline-offset-4">Add an image by web address</summary>
+        <div className="mt-2 flex gap-2">
+          <input className="field" placeholder="https://…" aria-label="Image web address" inputMode="url" autoComplete="off" spellCheck={false} value={paste} onChange={(e) => setPaste(e.target.value)} />
+          <button type="button" className="btn btn-ghost" onClick={() => {
+            const u = paste.trim();
+            if (!/^(https:\/\/|\/)/.test(u)) return toast.error("Use an address that starts with https:// or /");
+            onChange([...images, { url: u, alt: "" }]);
+            setPaste("");
+          }}>Add</button>
+        </div>
+      </details>
     </div>
   );
 }

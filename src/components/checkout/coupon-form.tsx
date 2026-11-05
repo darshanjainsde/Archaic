@@ -18,7 +18,7 @@ export function CouponForm({ code, error, applied, onApply }: { code: string | n
     >
       <label htmlFor="coupon" className="label">Discount code</label>
       <div className="flex gap-2">
-        <input id="coupon" className="field uppercase" value={value} onChange={(e) => setValue(e.target.value.toUpperCase().slice(0, 40))} autoComplete="off" autoCapitalize="characters" aria-invalid={Boolean(code && error)} aria-describedby={code && error ? "coupon-err" : undefined} placeholder="WELCOME10" />
+        <input id="coupon" className="field uppercase" value={value} onChange={(e) => setValue(e.target.value.toUpperCase().slice(0, 40))} autoComplete="off" autoCapitalize="characters" spellCheck={false} aria-invalid={Boolean(code && error)} aria-describedby={code && error ? "coupon-err" : undefined} placeholder="WELCOME10" />
         <button type="submit" className="btn btn-sm shrink-0" style={{ background: "var(--paper-ink)", color: "var(--paper)", minHeight: 48 }}>Apply</button>
       </div>
       {code && error && <p id="coupon-err" className="error-text" role="alert">{error} <button type="button" className="underline" onClick={() => onApply(null)}>Clear</button></p>}

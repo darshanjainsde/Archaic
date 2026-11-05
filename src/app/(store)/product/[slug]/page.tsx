@@ -14,6 +14,7 @@ import { ProductView } from "@/components/store/product/product-view";
 import { ReviewForm } from "@/components/store/product/review-form";
 import { ProductCard } from "@/components/store/product-card";
 import { Stars } from "@/components/ui/stars";
+import { breadcrumbLd, ldJson, returnPolicyLd, shippingLd, socialImage } from "@/lib/seo";
 
 type Params = Promise<{ slug: string }>;
 
@@ -33,7 +34,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     title: p.seoTitle || p.name,
     description: desc,
     alternates: { canonical: `/product/${p.slug}` },
-    openGraph: { type: "website", title: p.name, description: desc, images: p.images[0] ? [p.images[0].url] : undefined },
+    openGraph: { type: "website", title: p.name, description: desc, images: [socialImage(p.images[0]?.url, p.name)] },
+    twitter: { card: "summary_large_image", title: p.name, description: desc, images: [socialImage(p.images[0]?.url, p.name)] },
   };
 }
 
@@ -78,7 +80,7 @@ export default async function ProductPage({ params }: { params: Params }) {
     "@context": "https://schema.org",
     "@type": "Product",
     name: p.name,
-    description: p.shortDescription || p.description.slice(0, 300),
+    description: (p.shortDescription ? `${p.shortDescription} ` : "") + p.description.replace(/[#*_\[\]()]/g, "").slice(0, 400),
     image: p.images.map((i) => (i.url.startsWith("http") ? i.url : siteUrl(i.url))),
     sku: p.sku || p.id,
     brand: { "@type": "Brand", name: settings.store.name },
@@ -90,17 +92,36 @@ export default async function ProductPage({ params }: { params: Params }) {
       price: (p.price / 100).toFixed(2),
       availability: !p.trackInventory || p.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
       itemCondition: "https://schema.org/NewCondition",
+      seller: { "@id": siteUrl("/#organization") },
+      shippingDetails: shippingLd(settings, p.price),
+      hasMerchantReturnPolicy: returnPolicyLd(settings),
     },
-    ...(rating.count > 0 ? { aggregateRating: { "@type": "AggregateRating", ratingValue: rating.avg.toFixed(1), reviewCount: rating.count } } : {}),
+    ...(rating.count > 0 ? { aggregateRating: { "@type": "AggregateRating", ratingValue: rating.avg.toFixed(1), reviewCount: rating.count, bestRating: 5, worstRating: 1 } } : {}),
+    ...(reviews.length ? {
+      review: reviews.slice(0, 10).map((r) => ({
+        "@type": "Review",
+        reviewRating: { "@type": "Rating", ratingValue: r.rating, bestRating: 5 },
+        author: { "@type": "Person", name: r.user.name.split(" ")[0] || "Customer" },
+        datePublished: r.createdAt.toISOString().slice(0, 10),
+        ...(r.title ? { name: r.title } : {}),
+        reviewBody: r.body,
+      })),
+    } : {}),
   };
+  const crumbs = breadcrumbLd([
+    { name: "Home", path: "/" },
+    { name: "Shop", path: "/shop" },
+    ...(p.category ? [{ name: p.category.name, path: `/shop?category=${p.category.slug}` }] : []),
+    { name: p.name, path: `/product/${p.slug}` },
+  ]);
 
   return (
     <div className="container-x pt-4 md:pt-10">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
-      <nav aria-label="Breadcrumb" className="mb-4 hidden text-[15px] text-muted md:block">
-        <Link href="/" className="hover:underline underline-offset-4">Home</Link> <span aria-hidden>/</span>{" "}
-        <Link href="/shop" className="hover:underline underline-offset-4">Shop</Link>
-        {p.category && (<> <span aria-hidden>/</span> <Link href={`/shop?category=${p.category.slug}`} className="hover:underline underline-offset-4">{p.category.name}</Link></>)}
+      <script type="application/ld+json" dangerouslySetInnerHTML={ldJson([jsonLd, crumbs])} />
+      <nav aria-label="Breadcrumb" className="mb-2 hidden text-[15px] text-muted md:block">
+        <Link href="/" className="inline-block py-2.5 hover:underline underline-offset-4">Home</Link> <span aria-hidden>/</span>{" "}
+        <Link href="/shop" className="inline-block py-2.5 hover:underline underline-offset-4">Shop</Link>
+        {p.category && (<> <span aria-hidden>/</span> <Link href={`/shop?category=${p.category.slug}`} className="inline-block py-2.5 hover:underline underline-offset-4">{p.category.name}</Link></>)}
       </nav>
 
       <ProductView
