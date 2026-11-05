@@ -116,7 +116,12 @@ export default async function HomePage() {
 }
 
 async function loadHeroProduct(slug: string, maxQtyPerLine: number): Promise<HeroProduct | null> {
-  const p = await db.product.findFirst({ where: { slug, status: "ACTIVE" }, include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } } }).catch(() => null);
+  const include = { images: { orderBy: { sortOrder: "asc" as const }, take: 1 } };
+  // The chosen product, or, if it was deleted, renamed or hidden, a featured (else the newest) active product,
+  // so the animated hero never silently drops back to a plain banner.
+  const p =
+    (await db.product.findFirst({ where: { slug, status: "ACTIVE" }, include }).catch(() => null)) ??
+    (await db.product.findFirst({ where: { status: "ACTIVE", images: { some: {} } }, orderBy: [{ featured: "desc" }, { createdAt: "desc" }], include }).catch(() => null));
   if (!p) return null;
   const inStock = !p.trackInventory || p.stock > 0;
   return {
