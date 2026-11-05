@@ -1,4 +1,6 @@
+import type { Metadata } from "next";
 import { getSettings } from "@/lib/settings";
+import { siteUrl } from "@/lib/utils";
 import { getCurrentUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { productsForSource, wishlistIds } from "@/lib/catalog";
@@ -18,12 +20,14 @@ function activeBanners(placement: string) {
 
 function sourceHref(s: Extract<HomeSection, { type: "products" }>) {
   switch (s.source) {
-    case "category": return s.categorySlug ? `/shop?category=${s.categorySlug}` : "/shop";
+    case "category": return s.categorySlug ? `/collections/${s.categorySlug}` : "/shop";
     case "new": return "/shop?sort=new";
     case "bestsellers": return "/shop?sort=bestsellers";
     default: return "/shop";
   }
 }
+
+export const metadata: Metadata = { alternates: { canonical: "/" } };
 
 export default async function HomePage() {
   const [settings, user] = await Promise.all([getSettings(), getCurrentUser()]);
@@ -48,6 +52,38 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col gap-20 md:gap-32">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@graph": [
+              {
+                "@type": "Organization",
+                "@id": siteUrl("/#organization"),
+                name: settings.store.name,
+                url: siteUrl("/"),
+                logo: settings.store.logoUrl ? (settings.store.logoUrl.startsWith("http") ? settings.store.logoUrl : siteUrl(settings.store.logoUrl)) : siteUrl("/icons/512"),
+                description: settings.seo.description,
+                ...(settings.store.email ? { email: settings.store.email } : {}),
+                ...(settings.store.phone ? { telephone: settings.store.phone } : {}),
+                sameAs: [settings.store.instagram, settings.store.facebook, settings.store.youtube, settings.store.pinterest].filter(Boolean),
+                ...(settings.store.email || settings.store.phone ? { contactPoint: { "@type": "ContactPoint", contactType: "customer service", areaServed: "IN", availableLanguage: ["en", "hi"], ...(settings.store.email ? { email: settings.store.email } : {}), ...(settings.store.phone ? { telephone: settings.store.phone } : {}) } } : {}),
+              },
+              {
+                "@type": "WebSite",
+                "@id": siteUrl("/#website"),
+                name: settings.store.name,
+                url: siteUrl("/"),
+                inLanguage: "en-IN",
+                publisher: { "@id": siteUrl("/#organization") },
+                potentialAction: { "@type": "SearchAction", target: { "@type": "EntryPoint", urlTemplate: siteUrl("/shop?q={search_term_string}") }, "query-input": "required name=search_term_string" },
+              },
+            ],
+          }).replace(/</g, "\\u003c"),
+        }}
+      />
+      {!types.has("hero") && <h1 className="sr-only">{settings.seo.title}</h1>}
       {sections.map((s, idx) => {
         switch (s.type) {
           case "hero": {

@@ -107,6 +107,10 @@ model Category {
   slug        String    @unique
   description String?
   image       String?
+  /// Long-form markdown shown under the products on the collection page (SEO copy)
+  content     String?
+  seoTitle    String?
+  seoDescription String?
   sortOrder   Int       @default(0)
   isVisible   Boolean   @default(true)
   createdAt   DateTime  @default(now())

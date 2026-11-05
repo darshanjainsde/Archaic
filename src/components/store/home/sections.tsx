@@ -49,9 +49,9 @@ export function CategoryTiles({ heading, text, categories }: { heading: string; 
       <SectionHead heading={heading} text={text} href="/shop" linkLabel="Shop all" />
       <div className="grid grid-cols-2 gap-3 md:gap-5 lg:grid-cols-4">
         {categories.map((c) => (
-          <Link key={c.slug} href={`/shop?category=${c.slug}`} className="group flex flex-col">
+          <Link key={c.slug} href={`/collections/${c.slug}`} className="group flex flex-col">
             <div className="relative aspect-square overflow-hidden bg-surface" style={{ borderRadius: "var(--radius) var(--radius) 0 0" }}>
-              <Img src={c.image} alt="" fill sizes="(min-width:1024px) 24vw, 48vw" className="img-zoom object-cover" />
+              <Img src={c.image} alt={`${c.name} by Archaic Candles`} fill sizes="(min-width:1024px) 24vw, 48vw" className="img-zoom object-cover" />
             </div>
             <div className="card-label flex items-center justify-between gap-2 px-4 py-3" style={{ borderRadius: "0 0 var(--radius) var(--radius)" }}>
               <span className="font-display text-[20px] leading-tight md:text-[24px]">{c.name}</span>
@@ -97,7 +97,7 @@ export function PromoBand({ banner }: { banner: { title: string; subtitle: strin
         </div>
         {banner.image && (
           <div className="relative aspect-[4/3] overflow-hidden" style={{ borderRadius: "var(--radius)" }}>
-            <Img src={banner.image} alt="" fill sizes="(min-width:768px) 45vw, 100vw" className="object-cover" />
+            <Img src={banner.image} alt={banner.title} fill sizes="(min-width:768px) 45vw, 100vw" className="object-cover" />
           </div>
         )}
       </div>
@@ -109,7 +109,7 @@ export function StorySection({ heading, text, image, ctaLabel, ctaHref, storeNam
   return (
     <section className="container-x grid items-center gap-8 md:grid-cols-12 md:gap-6">
       <div className="relative aspect-[4/5] overflow-hidden bg-surface md:col-span-5" style={{ borderRadius: "var(--radius)" }}>
-        <Img src={image || "/images/products/pillar-trio-ivory.svg"} alt="" fill sizes="(min-width:768px) 40vw, 100vw" className="object-cover" />
+        <Img src={image || "/images/products/pillar-trio-ivory.svg"} alt="Hand-poured soy wax pillar candles" fill sizes="(min-width:768px) 40vw, 100vw" className="object-cover" />
       </div>
       <div className="label-panel p-7 md:col-span-6 md:col-start-7 md:p-12">
         <h2 className="text-[36px] md:text-[54px]">{heading}</h2>

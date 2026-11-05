@@ -155,7 +155,7 @@ export function ProductView({ p, wishlisted, deliveryText, children }: { p: Prod
       <div className="lg:col-span-5">
         <div className="lg:sticky lg:top-24">
           {p.isDraft && <p className="mb-3 bg-sale/20 p-3 text-[14px] font-semibold">Draft preview — only admins can see this page.</p>}
-          {p.category && <a href={`/shop?category=${p.category.slug}`} className="text-[15px] text-muted hover:underline underline-offset-4">{p.category.name}</a>}
+          {p.category && <a href={`/collections/${p.category.slug}`} className="text-[15px] text-muted hover:underline underline-offset-4">{p.category.name}</a>}
           <h1 className="mt-2 text-[38px] md:text-[52px]">{p.name}</h1>
           {p.rating.count > 0 && (
             <a href="#reviews" className="mt-3 inline-flex items-center gap-2 text-[15px] hover:underline underline-offset-4">

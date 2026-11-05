@@ -24,7 +24,7 @@ export default async function Categories({ searchParams }: { searchParams: Promi
               {cats.map((c) => (
                 <tr key={c.id}>
                   <td><div className="relative h-10 w-10 overflow-hidden rounded bg-field"><Img src={c.image} alt="" fill sizes="40px" className="object-cover" /></div></td>
-                  <td><b>{c.name}</b><div className="text-[12px] text-muted">/shop?category={c.slug}</div></td>
+                  <td><b>{c.name}</b><div className="text-[12px] text-muted">/collections/{c.slug}</div></td>
                   <td className="tabular-nums">{c._count.products}</td>
                   <td className="tabular-nums">{c.sortOrder}</td>
                   <td>{c.isVisible ? <Tag tone="green">Visible</Tag> : <Tag>Hidden</Tag>}</td>
@@ -44,6 +44,9 @@ export default async function Categories({ searchParams }: { searchParams: Promi
             <div><label className="label" htmlFor="c-slug">URL slug</label><input id="c-slug" name="slug" className="field" defaultValue={current?.slug} placeholder="auto from name" /></div>
             <div><label className="label" htmlFor="c-desc">Description</label><textarea id="c-desc" name="description" rows={3} className="field" defaultValue={current?.description ?? ""} /></div>
             <ImageField label="Image" name="image" value={current?.image} />
+            <div><label className="label" htmlFor="c-content">Collection page text (shown under the products, helps SEO)</label><textarea id="c-content" name="content" rows={8} className="field" defaultValue={current?.content ?? ""} aria-describedby="c-content-hint" /><p id="c-content-hint" className="hint">Markdown: ## heading, - list, **bold**. Write naturally about these products using the words customers search for.</p></div>
+            <div><label className="label" htmlFor="c-seot">SEO title</label><input id="c-seot" name="seoTitle" maxLength={70} className="field" defaultValue={current?.seoTitle ?? ""} placeholder={current ? `${current.name} — buy online in India | Archaic Candles` : ""} aria-describedby="c-seot-hint" /><p id="c-seot-hint" className="hint">Up to 60 characters shows fully on Google.</p></div>
+            <div><label className="label" htmlFor="c-seod">Meta description</label><textarea id="c-seod" name="seoDescription" maxLength={170} rows={3} className="field" defaultValue={current?.seoDescription ?? ""} aria-describedby="c-seod-hint" /><p id="c-seod-hint" className="hint">About 150–160 characters. Shown under the title in Google results.</p></div>
             <div><label className="label" htmlFor="c-sort">Sort order</label><input id="c-sort" name="sortOrder" type="number" min={0} className="field" defaultValue={current?.sortOrder ?? cats.length + 1} /></div>
             <label className="flex items-center gap-2 text-[14px]"><input type="checkbox" name="isVisible" defaultChecked={current?.isVisible ?? true} className="h-5 w-5 accent-[var(--accent)]" /> Visible in store</label>
             <SubmitButton className="w-full" pendingText="Saving…">{current ? "Save category" : "Create category"}</SubmitButton>

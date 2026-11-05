@@ -18,7 +18,14 @@ export async function generateMetadata(): Promise<Metadata> {
     applicationName: s.store.name,
     appleWebApp: { capable: true, title: s.store.name, statusBarStyle: "black-translucent" },
     formatDetection: { telephone: false },
-    openGraph: { type: "website", siteName: s.store.name, title: s.seo.title, description: s.seo.description, images: s.seo.ogImage ? [s.seo.ogImage] : ["/icons/512"] },
+    keywords: ["scented candles", "soy wax candles", "luxury scented candles India", "candle gift set", "candle gift hamper", "personalised candles", "Diwali candles", "aromatherapy candles", "jar candles", "handmade candles"],
+    alternates: { canonical: "./" },
+    openGraph: { type: "website", locale: "en_IN", siteName: s.store.name, title: s.seo.title, description: s.seo.description, images: [{ url: s.seo.ogImage || "/og", width: 1200, height: 630, alt: s.seo.title }] },
+    twitter: { card: "summary_large_image", title: s.seo.title, description: s.seo.description, images: [s.seo.ogImage || "/og"] },
+    robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
+    ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION
+      ? { verification: { ...(process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION } : {}), ...(process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION ? { other: { "msvalidate.01": process.env.NEXT_PUBLIC_BING_SITE_VERIFICATION } } : {}) } }
+      : {}),
     icons: { icon: [{ url: "/icons/192", type: "image/png" }], apple: [{ url: "/icons/180", sizes: "180x180", type: "image/png" }] },
   };
 }

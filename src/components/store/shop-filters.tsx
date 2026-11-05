@@ -21,17 +21,27 @@ function useQueryNav() {
   const pathname = usePathname();
   const params = useSearchParams();
   const [pending, start] = useTransition();
-  const push = (patch: Record<string, string | null>) => {
+  const push = (patchIn: Record<string, string | null>) => {
+    const patch = { ...patchIn };
     const next = new URLSearchParams(params.toString());
+    let path = pathname;
+    // Categories have clean, indexable URLs: /collections/<slug>; "all" is /shop
+    if ("category" in patch) {
+      const c = patch.category;
+      delete patch.category;
+      next.delete("category");
+      path = c ? `/collections/${encodeURIComponent(c)}` : "/shop";
+    }
     for (const [k, v] of Object.entries(patch)) {
       if (v === null || v === "") next.delete(k);
       else next.set(k, v);
     }
     next.delete("page");
     const qs = next.toString();
-    start(() => router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false }));
+    start(() => router.push(qs ? `${path}?${qs}` : path, { scroll: false }));
   };
-  return { params, push, pending };
+  const activeCategory = params.get("category") ?? (pathname.startsWith("/collections/") ? decodeURIComponent(pathname.split("/")[2] ?? "") : null);
+  return { params, push, pending, activeCategory };
 }
 
 export function SortSelect() {
@@ -47,11 +57,11 @@ export function SortSelect() {
 }
 
 function FilterBody({ categories, onDone }: { categories: Cat[]; onDone?: () => void }) {
-  const { params, push, pending } = useQueryNav();
+  const { params, push, pending, activeCategory } = useQueryNav();
   const [min, setMin] = useState(params.get("min") ?? "");
   const [max, setMax] = useState(params.get("max") ?? "");
   useEffect(() => { setMin(params.get("min") ?? ""); setMax(params.get("max") ?? ""); }, [params]);
-  const active = params.get("category");
+  const active = activeCategory;
   const inStock = params.get("inStock") === "1";
   const applyPrice = (e: React.FormEvent) => {
     e.preventDefault();

@@ -12,17 +12,21 @@ type R = ActionResult<{ redirect?: string }>;
 const ok = (message: string, redirect?: string): R => ({ ok: true, message, data: redirect ? { redirect } : undefined });
 
 /* ---------------- Categories ---------------- */
-const catSchema = z.object({ name: z.string().min(1, "Name is required").max(80), slug: z.string().min(1).max(80), description: z.string().max(500), image: z.string().max(1000), sortOrder: z.number().int().min(0).max(9999), isVisible: z.boolean() });
+const catSchema = z.object({ name: z.string().min(1, "Name is required").max(80), slug: z.string().min(1).max(80), description: z.string().max(500), image: z.string().max(1000), sortOrder: z.number().int().min(0).max(9999), isVisible: z.boolean(),
+  content: z.string().max(8000).default(""),
+  seoTitle: z.string().max(70, "SEO title: keep it under 70 characters").default(""),
+  seoDescription: z.string().max(170, "Meta description: keep it under 170 characters").default(""),
+});
 
 export async function saveCategory(_: R | null, fd: FormData): Promise<R> {
   await assertAdmin();
   const id = fstr(fd, "id") || null;
-  const parsed = catSchema.safeParse({ name: fstr(fd, "name"), slug: slugify(fstr(fd, "slug") || fstr(fd, "name")), description: fstr(fd, "description"), image: fstr(fd, "image"), sortOrder: fint(fd, "sortOrder"), isVisible: fbool(fd, "isVisible") });
+  const parsed = catSchema.safeParse({ name: fstr(fd, "name"), slug: slugify(fstr(fd, "slug") || fstr(fd, "name")), description: fstr(fd, "description"), image: fstr(fd, "image"), sortOrder: fint(fd, "sortOrder"), isVisible: fbool(fd, "isVisible"), content: fstr(fd, "content"), seoTitle: fstr(fd, "seoTitle"), seoDescription: fstr(fd, "seoDescription") });
   if (!parsed.success) return { ok: false, error: firstError(parsed.error.issues), fieldErrors: zodFieldErrors(parsed.error.issues) };
   const d = parsed.data;
   const clash = await db.category.findUnique({ where: { slug: d.slug } });
   if (clash && clash.id !== id) return { ok: false, error: `The URL “${d.slug}” is already used by ${clash.name}` };
-  const data = { ...d, description: d.description || null, image: d.image || null };
+  const data = { ...d, description: d.description || null, image: d.image || null, content: d.content || null, seoTitle: d.seoTitle || null, seoDescription: d.seoDescription || null };
   if (id) await db.category.update({ where: { id }, data });
   else await db.category.create({ data });
   revalidatePath("/", "layout");

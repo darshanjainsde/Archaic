@@ -36,7 +36,7 @@ export default async function Banners({ searchParams }: { searchParams: Promise<
             <div className="md:col-span-2"><label className="label" htmlFor="t">Headline</label><input id="t" name="title" className="field" defaultValue={b?.title} required maxLength={140} /></div>
             <div className="md:col-span-2"><label className="label" htmlFor="st">Supporting text</label><textarea id="st" name="subtitle" rows={2} className="field" defaultValue={b?.subtitle ?? ""} maxLength={400} /></div>
             <div><label className="label" htmlFor="cl">Button label</label><input id="cl" name="ctaLabel" className="field" defaultValue={b?.ctaLabel ?? ""} placeholder="Shop now" /></div>
-            <div><label className="label" htmlFor="ch">Button link</label><input id="ch" name="ctaHref" className="field" defaultValue={b?.ctaHref ?? ""} placeholder="/shop?category=gift-sets" /></div>
+            <div><label className="label" htmlFor="ch">Button link</label><input id="ch" name="ctaHref" className="field" defaultValue={b?.ctaHref ?? ""} placeholder="/collections/gift-sets" /></div>
             <ImageField label="Image (desktop)" name="image" value={b?.image} hint="Landscape, at least 1600 px wide" />
             <ImageField label="Image (phone, optional)" name="mobileImage" value={b?.mobileImage} hint="Portrait 4:5 works best" />
             <div><label className="label" htmlFor="bg">Background colour</label><input id="bg" name="bgColor" className="field" defaultValue={b?.bgColor ?? ""} placeholder="#6e2b22 (optional)" /></div>

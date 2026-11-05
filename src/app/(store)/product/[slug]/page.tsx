@@ -28,12 +28,17 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const { slug } = await params;
   const p = await getProduct(slug);
   if (!p || p.status !== "ACTIVE") return { title: "Product not found", robots: { index: false } };
-  const desc = p.seoDescription || p.shortDescription || p.description.replace(/[#*_\[\]()]/g, "").slice(0, 160);
+  const plain = (t: string) => t.replace(/[#*_\[\]()>`-]/g, " ").replace(/\s+/g, " ").trim();
+  const desc = (p.seoDescription || p.shortDescription || plain(p.description)).slice(0, 160);
+  const title = p.seoTitle || (p.category ? `${p.name} – ${p.category.name}` : p.name);
+  const ogImages = p.images.filter((i) => !/\.svg($|\?)/i.test(i.url)).map((i) => ({ url: i.url, alt: i.alt || p.name }));
   return {
-    title: p.seoTitle || p.name,
+    title: p.seoTitle ? { absolute: p.seoTitle } : title,
     description: desc,
+    keywords: p.tags.length ? p.tags : undefined,
     alternates: { canonical: `/product/${p.slug}` },
-    openGraph: { type: "website", title: p.name, description: desc, images: p.images[0] ? [p.images[0].url] : undefined },
+    openGraph: { type: "website", title, description: desc, url: `/product/${p.slug}`, ...(ogImages.length ? { images: ogImages } : {}) },
+    twitter: { card: "summary_large_image", title, description: desc },
   };
 }
 
@@ -74,24 +79,66 @@ export default async function ProductPage({ params }: { params: Params }) {
   const rating = { avg: ratingAgg._avg.rating ?? 0, count: ratingAgg._count };
   const options = parseOptions(p.options);
 
+  const abs = (u: string) => (u.startsWith("http") ? u : siteUrl(u));
   const jsonLd = {
     "@context": "https://schema.org",
-    "@type": "Product",
-    name: p.name,
-    description: p.shortDescription || p.description.slice(0, 300),
-    image: p.images.map((i) => (i.url.startsWith("http") ? i.url : siteUrl(i.url))),
-    sku: p.sku || p.id,
-    brand: { "@type": "Brand", name: settings.store.name },
-    ...(p.category ? { category: p.category.name } : {}),
-    offers: {
-      "@type": "Offer",
-      url: siteUrl(`/product/${p.slug}`),
-      priceCurrency: "INR",
-      price: (p.price / 100).toFixed(2),
-      availability: !p.trackInventory || p.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
-      itemCondition: "https://schema.org/NewCondition",
-    },
-    ...(rating.count > 0 ? { aggregateRating: { "@type": "AggregateRating", ratingValue: rating.avg.toFixed(1), reviewCount: rating.count } } : {}),
+    "@graph": [
+      {
+        "@type": "Product",
+        "@id": siteUrl(`/product/${p.slug}#product`),
+        name: p.name,
+        description: (p.shortDescription ? p.shortDescription + " " : "") + p.description.replace(/[#*_]/g, "").replace(/\s+/g, " ").slice(0, 500),
+        image: p.images.map((i) => abs(i.url)),
+        sku: p.sku || p.id,
+        brand: { "@type": "Brand", name: settings.store.name },
+        ...(p.category ? { category: p.category.name } : {}),
+        ...(p.tags.length ? { keywords: p.tags.join(", ") } : {}),
+        offers: {
+          "@type": "Offer",
+          url: siteUrl(`/product/${p.slug}`),
+          priceCurrency: "INR",
+          price: (p.price / 100).toFixed(2),
+          availability: !p.trackInventory || p.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+          itemCondition: "https://schema.org/NewCondition",
+          seller: { "@type": "Organization", name: settings.store.name },
+          shippingDetails: {
+            "@type": "OfferShippingDetails",
+            shippingDestination: { "@type": "DefinedRegion", addressCountry: "IN" },
+            shippingRate: { "@type": "MonetaryAmount", currency: "INR", value: c.freeShippingThreshold === 0 || p.price >= c.freeShippingThreshold ? "0" : (c.flatShipping / 100).toFixed(2) },
+            deliveryTime: {
+              "@type": "ShippingDeliveryTime",
+              handlingTime: { "@type": "QuantitativeValue", minValue: 0, maxValue: Math.max(1, c.dispatchDays), unitCode: "DAY" },
+              transitTime: { "@type": "QuantitativeValue", minValue: c.deliveryDaysMin, maxValue: c.deliveryDaysMax, unitCode: "DAY" },
+            },
+          },
+          hasMerchantReturnPolicy: c.returnsEnabled
+            ? { "@type": "MerchantReturnPolicy", applicableCountry: "IN", returnPolicyCategory: "https://schema.org/MerchantReturnFiniteReturnWindow", merchantReturnDays: c.returnDays, returnMethod: "https://schema.org/ReturnByMail" }
+            : { "@type": "MerchantReturnPolicy", applicableCountry: "IN", returnPolicyCategory: "https://schema.org/MerchantReturnNotPermitted" },
+        },
+        ...(rating.count > 0
+          ? {
+              aggregateRating: { "@type": "AggregateRating", ratingValue: rating.avg.toFixed(1), reviewCount: rating.count, bestRating: 5, worstRating: 1 },
+              review: reviews.slice(0, 5).map((r) => ({
+                "@type": "Review",
+                reviewRating: { "@type": "Rating", ratingValue: r.rating, bestRating: 5 },
+                author: { "@type": "Person", name: r.user.name.split(" ")[0] },
+                datePublished: r.createdAt.toISOString().slice(0, 10),
+                ...(r.title ? { name: r.title } : {}),
+                reviewBody: r.body.slice(0, 500),
+              })),
+            }
+          : {}),
+      },
+      {
+        "@type": "BreadcrumbList",
+        itemListElement: [
+          { "@type": "ListItem", position: 1, name: "Home", item: siteUrl("/") },
+          { "@type": "ListItem", position: 2, name: "Shop", item: siteUrl("/shop") },
+          ...(p.category ? [{ "@type": "ListItem", position: 3, name: p.category.name, item: siteUrl(`/collections/${p.category.slug}`) }] : []),
+          { "@type": "ListItem", position: p.category ? 4 : 3, name: p.name, item: siteUrl(`/product/${p.slug}`) },
+        ],
+      },
+    ],
   };
 
   return (
@@ -100,7 +147,7 @@ export default async function ProductPage({ params }: { params: Params }) {
       <nav aria-label="Breadcrumb" className="mb-4 hidden text-[15px] text-muted md:block">
         <Link href="/" className="hover:underline underline-offset-4">Home</Link> <span aria-hidden>/</span>{" "}
         <Link href="/shop" className="hover:underline underline-offset-4">Shop</Link>
-        {p.category && (<> <span aria-hidden>/</span> <Link href={`/shop?category=${p.category.slug}`} className="hover:underline underline-offset-4">{p.category.name}</Link></>)}
+        {p.category && (<> <span aria-hidden>/</span> <Link href={`/collections/${p.category.slug}`} className="hover:underline underline-offset-4">{p.category.name}</Link></>)}
       </nav>
 
       <ProductView

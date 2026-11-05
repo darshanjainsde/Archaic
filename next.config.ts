@@ -13,6 +13,14 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: { bodySizeLimit: "6mb" },
   },
+  async redirects() {
+    return [
+      // Old category URLs → clean, indexable collection pages
+      { source: "/shop", has: [{ type: "query", key: "category", value: "(?<cat>[a-z0-9-]+)" }], destination: "/collections/:cat", permanent: true },
+      { source: "/category/:slug", destination: "/collections/:slug", permanent: true },
+      { source: "/products/:slug", destination: "/product/:slug", permanent: true },
+    ];
+  },
   async headers() {
     return [
       {

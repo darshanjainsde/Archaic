@@ -179,13 +179,13 @@ export const DEFAULT_SETTINGS: StoreSettings = {
   },
   nav: [
     { label: "Shop all", href: "/shop" },
-    { label: "Candles", href: "/shop?category=candles" },
-    { label: "Gift sets", href: "/shop?category=gift-sets" },
+    { label: "Candles", href: "/collections/candles" },
+    { label: "Gift sets", href: "/collections/gift-sets" },
     { label: "Track order", href: "/track" },
   ],
   home: {
     sections: [
-      { id: "hero", type: "hero", enabled: true, heading: "Archaic Candles", text: "Soy wax candles poured by hand in small batches, labelled like the apothecary jars they come from.", ctaLabel: "Shop the candles", ctaHref: "/shop", image: null },
+      { id: "hero", type: "hero", enabled: true, heading: "Archaic Candles", text: "Luxury scented candles hand-poured in natural soy wax, labelled like the apothecary jars they come from.", ctaLabel: "Shop the candles", ctaHref: "/shop", image: null },
       { id: "usp", type: "usp", enabled: true, items: [
         { title: "Hand-poured soy wax", text: "Clean-burning, poured in batches of forty." },
         { title: "Choose your scent", text: "Every candle can be poured in the scent and colour you pick." },
@@ -193,9 +193,9 @@ export const DEFAULT_SETTINGS: StoreSettings = {
         { title: "Ships across India", text: "Dispatched within two working days." },
       ] },
       { id: "cats", type: "categories", enabled: true, heading: "Shop by category", text: "" },
-      { id: "featured", type: "products", enabled: true, heading: "The apothecary shelf", text: "Our most loved pours, ready to choose your scent.", source: "featured", categorySlug: null, limit: 8, layout: "carousel" },
+      { id: "featured", type: "products", enabled: true, heading: "Bestselling scented candles", text: "Our most loved soy wax jar candles. Choose the scent, colour and label.", source: "featured", categorySlug: null, limit: 8, layout: "carousel" },
       { id: "promo", type: "promo", enabled: true },
-      { id: "gifts", type: "products", enabled: true, heading: "Gift sets", text: "Boxed, wrapped and ready to give.", source: "category", categorySlug: "gift-sets", limit: 6, layout: "grid" },
+      { id: "gifts", type: "products", enabled: true, heading: "Candle gift sets & hampers", text: "Boxed, wrapped by hand and ready to give — for Diwali, weddings, birthdays and return gifts.", source: "category", categorySlug: "gift-sets", limit: 6, layout: "grid" },
       { id: "story", type: "story", enabled: true, heading: "Why archaic", text: "Before electric light, a candle was how a house kept time. We pour ours the old way: soy wax, cotton wicks, oils blended by hand, and a label written for the person who will light it.", image: null, ctaLabel: "Read our story", ctaHref: "/pages/about" },
       { id: "membership", type: "membership", enabled: true, heading: "", text: "" },
       { id: "reviews", type: "reviews", enabled: true, heading: "Notes from our customers" },
@@ -239,8 +239,8 @@ export const DEFAULT_SETTINGS: StoreSettings = {
     ],
   },
   seo: {
-    title: "Archaic Candles — Hand-poured candles & gifts",
-    description: "Soy wax candles hand-poured in small batches. Choose your scent, colour and label. Gift sets wrapped by hand, shipped across India.",
+    title: "Luxury Scented Candles & Gift Sets in India | Archaic Candles",
+    description: "Hand-poured luxury scented candles in natural soy wax. Personalised candles & candle gift hampers for Diwali, weddings & birthdays. Shipped across India.",
     ogImage: null,
   },
 };

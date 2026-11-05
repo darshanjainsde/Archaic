@@ -59,7 +59,18 @@ Then sign in at `https://<your-project>.vercel.app/login` with `ADMIN_EMAIL` / `
 
 In **Admin → Settings → Payments** you can turn Cashfree, Razorpay and Cash on Delivery on or off, and choose which gateway is shown first. A gateway only appears at checkout when it is switched on *and* its keys are set.
 
-## 8. Before you launch
+## 8. Get found on Google
+1. Open Google Search Console (search.google.com/search-console) → **Add property → URL prefix** → `https://archaiccandles.com`.
+2. Choose **HTML tag** verification and copy only the `content="…"` value. Add it in Vercel as `NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION`, redeploy, then click **Verify**. (Bing Webmaster Tools works the same way with `NEXT_PUBLIC_BING_SITE_VERIFICATION`.)
+3. In Search Console → **Sitemaps**, submit `https://archaiccandles.com/sitemap.xml`. It lists every product, collection and page and updates itself.
+4. Use **Rich results test** (search.google.com/test/rich-results) on a product page to confirm the price, stock and rating show as structured data.
+5. Create a free **Google Business Profile** for Archaic Candles and link the site. It helps "candles near me" searches and shows reviews.
+
+What is already built in: keyword-rich titles and descriptions on every page (editable per product, per collection and site-wide in Admin), clean collection URLs (`/collections/gift-sets`), product + breadcrumb + organisation structured data with price, stock, shipping and return details, an automatic sitemap with product images, a robots.txt that keeps private pages out, real 404s and 308 redirects, a 1200×630 share image, and a Candle care & FAQ page.
+
+What ranks a new store over time: real product photographs with descriptive file names and alt text, customer reviews, a page of text on each collection (Admin → Categories → Collection page text), and links from Instagram, Pinterest, marketplaces and gifting blogs.
+
+## 9. Before you launch
 - Replace the drawn product images with your photographs (Admin → Products → each product → Images; and per-colour images in Options).
 - Edit the policy pages (Admin → Pages): Shipping, Returns, Privacy, Terms, Contact. Payment gateways check these pages during KYC.
 - Set your store phone, address and GSTIN in Admin → Settings.

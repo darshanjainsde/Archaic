@@ -35,7 +35,7 @@ export function Hero({ slides, storeName, tagline }: { slides: HeroSlide[]; stor
             </div>
             <div className="relative order-1 aspect-[5/4] overflow-hidden bg-surface md:order-1 md:col-span-12 md:aspect-[16/9] lg:order-2 lg:col-span-6 lg:aspect-auto" style={{ borderRadius: "var(--radius)" }}>
               {s.image ? (
-                <Img src={s.image} alt="" fill priority={i === 0} sizes="(min-width:768px) 55vw, 100vw" className="rise rise-1 object-cover" />
+                <Img src={s.image} alt={s.title} fill priority={i === 0} sizes="(min-width:768px) 55vw, 100vw" className="rise rise-1 object-cover" />
               ) : null}
             </div>
           </div>

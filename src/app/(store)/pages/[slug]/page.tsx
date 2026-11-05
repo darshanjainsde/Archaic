@@ -12,7 +12,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const { slug } = await params;
   const page = await getPage(slug);
   if (!page || !page.isPublished) return { title: "Page not found", robots: { index: false } };
-  return { title: page.title, description: page.content.replace(/[#*_\[\]()]/g, "").slice(0, 160), alternates: { canonical: `/pages/${page.slug}` } };
+  return { title: page.title, description: (() => { const t = page.content.replace(/[#*_\[\]()>`]/g, " ").replace(/^\s*-\s+/gm, "").replace(/\s+/g, " ").trim(); return t.length > 158 ? t.slice(0, t.lastIndexOf(" ", 155)) + "…" : t; })(), alternates: { canonical: `/pages/${page.slug}` } };
 }
 
 export default async function CmsPage({ params }: { params: Params }) {

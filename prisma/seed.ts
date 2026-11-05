@@ -3,6 +3,7 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { DEFAULT_SETTINGS } from "../src/lib/settings-schema";
+import { CATEGORY_SEO, PRODUCT_SEO, PAGE_SEO } from "./seo-content";
 
 const db = new PrismaClient();
 const img = (f: string) => `/images/products/${f}.svg`;
@@ -61,7 +62,10 @@ async function main() {
     { slug: "accessories", name: "Accessories", description: "Everything for a cleaner, longer burn.", image: img("trimmer"), sortOrder: 4 },
   ];
   const catIds: Record<string, string> = {};
-  for (const c of cats) catIds[c.slug] = (await db.category.upsert({ where: { slug: c.slug }, create: c, update: {} })).id;
+  for (const c of cats) {
+    const seo = CATEGORY_SEO[c.slug];
+    catIds[c.slug] = (await db.category.upsert({ where: { slug: c.slug }, create: { ...c, ...(seo ?? {}) }, update: {} })).id;
+  }
 
   type P = { slug: string; name: string; cat: string; price: number; compare?: number | null; stock: number; featured?: boolean; badge?: string | null; short: string; desc: string; images: string[]; options: unknown[]; specs?: unknown[]; personalization?: unknown; tags?: string[] };
   const products: P[] = [
@@ -96,12 +100,30 @@ async function main() {
     });
   }
 
+  // Fill SEO fields that are still empty on existing rows (never overwrites admin edits)
+  for (const [slug, seo] of Object.entries(CATEGORY_SEO)) {
+    const c = await db.category.findUnique({ where: { slug } });
+    if (!c) continue;
+    await db.category.update({ where: { slug }, data: { seoTitle: c.seoTitle || seo.seoTitle, seoDescription: c.seoDescription || seo.seoDescription, content: c.content || seo.content } });
+  }
+  for (const [slug, seo] of Object.entries(PRODUCT_SEO)) {
+    const p = await db.product.findUnique({ where: { slug } });
+    if (!p) continue;
+    await db.product.update({ where: { slug }, data: { seoTitle: p.seoTitle || seo.seoTitle, seoDescription: p.seoDescription || seo.seoDescription, tags: p.tags.length > 2 ? p.tags : [...new Set([...p.tags, ...seo.tags])] } });
+  }
+  const storeRow = await db.setting.findUnique({ where: { id: "store" } });
+  const data = (storeRow?.data ?? {}) as { seo?: { title?: string; description?: string } };
+  if (storeRow && (!data.seo?.title || data.seo.title === "Archaic Candles — Hand-poured candles & gifts")) {
+    await db.setting.update({ where: { id: "store" }, data: { data: { ...data, seo: { ...DEFAULT_SETTINGS.seo, ...(data.seo ?? {}), title: DEFAULT_SETTINGS.seo.title, description: DEFAULT_SETTINGS.seo.description } } as object } });
+  }
+
   const pages = [
     { slug: "about", title: "Our story", content: "Archaic Candles began at a kitchen table, with a double boiler and a jar of soy flakes.\n\nWe pour every candle by hand in small batches, blend our own fragrance oils, and write each label for the person who will light it.\n\n## What we use\n- 100% soy wax and lead-free cotton wicks\n- Phthalate-free fragrance and essential oils\n- Reusable amber glass jars" },
     { slug: "shipping-policy", title: "Shipping policy", content: "We dispatch orders within 2 working days. Delivery across India usually takes 3–7 working days after dispatch.\n\n- Free shipping on orders above ₹999\n- A flat ₹79 shipping fee applies below that\n- You will receive a tracking number by email when your order ships" },
     { slug: "returns", title: "Returns & refunds", content: "Because candles are personal and often personalised, we do not accept returns of used or personalised items.\n\nIf your order arrives damaged, write to us within 48 hours of delivery with a photo and we will replace it or refund you in full.\n\nRefunds for cancelled prepaid orders are made to the original payment method within 5–7 working days." },
     { slug: "privacy-policy", title: "Privacy policy", content: "We collect only what we need to fulfil your order: your name, contact details and delivery address. Payments are processed by our payment partners (Razorpay / Cashfree); we never see or store your card details.\n\nWe do not sell your data. You can ask us to delete your account at any time by writing to us." },
     { slug: "terms", title: "Terms & conditions", content: "By placing an order you agree to these terms. Prices are in Indian Rupees and include applicable taxes. We may cancel an order if an item is out of stock, in which case any payment is refunded in full.\n\nNever leave a burning candle unattended. Keep away from children, pets and anything flammable." },
+    { slug: "faq", title: "Candle care & FAQ", content: PAGE_SEO.faq },
     { slug: "contact", title: "Contact us", content: "Write to us at hello@archaiccandles.com. We reply within one working day.\n\nFor order questions, please include your order number (it starts with AC)." },
   ];
   for (const pg of pages) await db.page.upsert({ where: { slug: pg.slug }, create: pg, update: {} });
@@ -110,7 +132,7 @@ async function main() {
   await db.banner.deleteMany({ where: { title: "__never__" } });
   if ((await db.banner.count()) === 0) {
     await db.banner.createMany({ data: [
-      { placement: "HERO", title: "Choose your scent. We pour it.", subtitle: "Every jar is poured to order in the scent, colour and label you pick.", ctaLabel: "Start with Oud & Amber", ctaHref: "/product/oud-amber", image: img("oud-amber-amber"), sortOrder: 0 },
+      { placement: "HERO", title: "Scented candles, poured for you.", subtitle: "Luxury soy wax candles, hand-poured to order in the scent, colour and label you choose.", ctaLabel: "Start with Oud & Amber", ctaHref: "/product/oud-amber", image: img("oud-amber-amber"), sortOrder: 0 },
       { placement: "PROMO", title: "The Diwali box is back", subtitle: "Three pours, long matches and a handwritten card. Save ₹400 until the festival.", ctaLabel: "See the box", ctaHref: "/product/diwali-gift-box", image: img("box-diwali"), bgColor: "#6e2b22", textColor: "#f4ecdd", sortOrder: 0 },
     ] });
   }
