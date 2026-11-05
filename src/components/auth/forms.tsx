@@ -11,7 +11,7 @@ export function LoginForm({ next }: { next: string }) {
     <form action={action} className="space-y-5" noValidate>
       <input type="hidden" name="next" value={next} />
       <FormAlert error={state?.error} />
-      <TextField id="email" name="email" label="Email" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} required defaultValue={state?.values?.email} key={state?.values?.email} />
+      <TextField id="email" name="email" label="Email or mobile number" type="text" inputMode="email" autoComplete="username" autoCapitalize="none" spellCheck={false} required defaultValue={state?.values?.email} key={state?.values?.email} />
       <PasswordInput id="password" name="password" label="Password" autoComplete="current-password" />
       <div className="-my-2 flex justify-end"><Link href="/forgot-password" className="tap-y text-[15px] underline">Forgot password?</Link></div>
       <SubmitButton className="w-full" pendingText="Signing in…">Sign in</SubmitButton>
@@ -28,6 +28,7 @@ export function RegisterForm({ next }: { next: string }) {
     <form action={action} className="space-y-5" noValidate>
       <input type="hidden" name="next" value={next} />
       <FormAlert error={state?.error} />
+      {state?.ok && state.message && <p role="status" className="bg-surface p-4 text-[16px]" style={{ borderRadius: "var(--radius)" }}>{state.message}</p>}
       <TextField id="name" name="name" label="Full name" autoComplete="name" required error={fe.name} defaultValue={v.name} key={`n${v.name}`} maxLength={80} />
       <TextField id="email" name="email" label="Email" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} required error={fe.email} defaultValue={v.email} key={`e${v.email}`} />
       <TextField id="phone" name="phone" label="Mobile number (optional)" type="tel" inputMode="tel" autoComplete="tel-national" error={fe.phone} defaultValue={v.phone} key={`p${v.phone}`} maxLength={14} />

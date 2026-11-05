@@ -4,24 +4,26 @@ import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { lifetimeSpend } from "@/lib/orders";
+import { ownedOrders } from "@/lib/order-scope";
 import { tierForSpend } from "@/lib/membership";
 import { MembershipCard } from "@/components/account/membership-card";
 import { OrderRow } from "@/components/account/order-row";
 
 export const metadata: Metadata = { title: "My account", robots: { index: false } };
 
-export default async function AccountHome({ searchParams }: { searchParams: Promise<{ reset?: string }> }) {
-  const { reset } = await searchParams;
+export default async function AccountHome({ searchParams }: { searchParams: Promise<{ reset?: string; verify?: string }> }) {
+  const { reset, verify } = await searchParams;
   const user = await requireUser("/account");
   const [s, spend, orders, pending] = await Promise.all([
     getSettings(),
     lifetimeSpend(user.id),
-    db.order.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, take: 3, include: { items: { select: { image: true, name: true }, take: 4 } } }),
-    db.order.count({ where: { userId: user.id, status: { in: ["CONFIRMED", "PROCESSING", "SHIPPED", "OUT_FOR_DELIVERY"] } } }),
+    db.order.findMany({ where: ownedOrders(user), orderBy: { createdAt: "desc" }, take: 3, include: { items: { select: { image: true, name: true }, take: 4 } } }),
+    db.order.count({ where: { ...ownedOrders(user), status: { in: ["CONFIRMED", "PROCESSING", "SHIPPED", "OUT_FOR_DELIVERY"] } } }),
   ]);
   const t = tierForSpend(s.membership.tiers, spend);
   return (
     <div className="space-y-10">
+      {verify && <p role="status" className="bg-surface p-4 text-[16px]" style={{ borderRadius: "var(--radius)" }}>{verify === "done" ? "Thank you, your email is confirmed." : verify === "sent" ? "We emailed you a confirmation link. It is valid for 24 hours." : "That link has expired. Request a new one above."}</p>}
       {reset && <p role="status" className="bg-surface p-4 text-[16px]" style={{ borderRadius: "var(--radius)" }}>Your password has been changed.</p>}
       <div>
         <h1 className="text-5xl md:text-6xl">Hello, {user.name.split(" ")[0]}</h1>

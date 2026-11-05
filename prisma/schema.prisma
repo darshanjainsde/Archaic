@@ -55,8 +55,14 @@ model User {
   id            String    @id @default(cuid())
   email         String    @unique
   name          String
-  phone         String?
-  passwordHash  String
+  /// 10-digit Indian mobile, unique across accounts when set. Used for sign-in with a password.
+  phone         String?   @unique
+  /// null for guest records (orders placed without an account) and Google-only accounts
+  passwordHash  String?
+  /// Google account id (the OIDC "sub") once linked
+  googleId      String?   @unique
+  /// true once the email is proven (Google, or a set/reset-password link). Guest history is only handed over after this.
+  emailVerified Boolean   @default(false)
   role          Role      @default(CUSTOMER)
   tokenVersion  Int       @default(0)
   marketingOptIn Boolean  @default(false)
@@ -222,6 +228,8 @@ model Order {
   userId           String
   user             User          @relation(fields: [userId], references: [id])
   email            String
+  /// Placed without signing in. Shown in an account only once that account's email is verified.
+  isGuest          Boolean       @default(false)
   status           OrderStatus   @default(PENDING_PAYMENT)
   paymentStatus    PaymentStatus @default(PENDING)
   paymentMethod    PaymentMethod

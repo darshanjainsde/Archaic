@@ -29,6 +29,10 @@ const METHOD_LABEL: Record<Method, { title: string; text: string }> = {
 
 export function CheckoutView(p: {
   user: { name: string; email: string; phone: string | null };
+  /** Not signed in: ask for an email, no saved addresses */
+  guest?: boolean;
+  signInHref?: string;
+  googleHref?: string | null;
   addresses: SavedAddress[];
   methods: Method[];
   codFee: number;
@@ -45,7 +49,8 @@ export function CheckoutView(p: {
   useEffect(() => setMounted(true), []);
   const [addressId, setAddressId] = useState<string>(p.addresses[0]?.id ?? "new");
   const [addr, setAddr] = useState<AddressForm>({ ...EMPTY_ADDRESS, name: p.user.name, phone: p.user.phone ?? "" });
-  const [saveAddress, setSaveAddress] = useState(true);
+  const [saveAddress, setSaveAddress] = useState(!p.guest);
+  const [email, setEmail] = useState("");
   const [method, setMethod] = useState<Method | null>(p.methods[0] ?? null);
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -92,6 +97,12 @@ export function CheckoutView(p: {
         return;
       }
     }
+    if (p.guest && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email.trim())) {
+      setErrors((e) => ({ ...e, email: "Enter a valid email address" }));
+      setFormError("Enter your email so we can send your order updates");
+      document.getElementById("contact-h")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      return;
+    }
     busy.current = true;
     startTransition(async () => {
       try {
@@ -107,6 +118,7 @@ export function CheckoutView(p: {
           address: addressId === "new" ? addr : undefined,
           saveAddress,
           phone: addressId === "new" ? addr.phone : null,
+          email: p.guest ? email.trim() : undefined,
         });
         if (!res.ok) {
           setFormError(res.error);
@@ -128,7 +140,7 @@ export function CheckoutView(p: {
             router.replace(`/order/${n}`);
           } else if (outcome === "dismissed") {
             toast("Payment not completed", { description: `Order ${n} is saved. You can pay for it from My orders.` });
-            router.replace(`/account/orders/${n}`);
+            router.replace(p.guest ? `/checkout/return?order=${n}` : `/account/orders/${n}`);
           }
           // "redirect": the browser is leaving for Cashfree
         } catch (e) {
@@ -149,7 +161,21 @@ export function CheckoutView(p: {
       <div className="space-y-10">
         <section aria-labelledby="contact-h">
           <h2 id="contact-h" className="mb-3 text-3xl">Contact</h2>
-          <p className="text-[16px]">{p.user.name} · {p.user.email}{p.user.phone ? ` · ${p.user.phone}` : ""}</p>
+          {p.guest ? (
+            <div className="space-y-3">
+              <div>
+                <label htmlFor="guest-email" className="label">Email for your order updates</label>
+                <input id="guest-email" name="email" type="email" inputMode="email" autoComplete="email" autoCapitalize="none" spellCheck={false} className="field" value={email} onChange={(e) => setEmail(e.target.value)} aria-invalid={Boolean(errors.email)} aria-describedby={errors.email ? "guest-email-err" : "guest-email-hint"} placeholder="you@example.com" />
+                {errors.email ? <p id="guest-email-err" className="error-text" role="alert">{errors.email}</p> : <p id="guest-email-hint" className="hint">No account needed. Use this email later to track your order or to sign in.</p>}
+              </div>
+              <p className="text-[15px]">
+                Have an account? <Link href={p.signInHref ?? "/login?next=/checkout"} className="font-semibold underline">Sign in</Link>
+                {p.googleHref ? <> or <a href={p.googleHref} className="font-semibold underline">continue with Google</a></> : null}
+              </p>
+            </div>
+          ) : (
+            <p className="text-[16px]">{p.user.name} · {p.user.email}{p.user.phone ? ` · ${p.user.phone}` : ""}</p>
+          )}
         </section>
 
         <section id="delivery" aria-labelledby="delivery-h" className="scroll-mt-24">
@@ -176,10 +202,10 @@ export function CheckoutView(p: {
           {addressId === "new" && (
             <div className="mt-5 space-y-4">
               <AddressFields value={addr} onChange={setAddr} errors={errors} />
-              <label className="flex min-h-11 cursor-pointer items-center gap-3 text-[16px]">
+              {!p.guest && <label className="flex min-h-11 cursor-pointer items-center gap-3 text-[16px]">
                 <input type="checkbox" className="h-5 w-5 accent-[var(--accent)]" checked={saveAddress} onChange={(e) => setSaveAddress(e.target.checked)} />
                 Save this address for next time
-              </label>
+              </label>}
             </div>
           )}
           <p className="hint mt-3 text-[15px]">{p.deliveryText}</p>

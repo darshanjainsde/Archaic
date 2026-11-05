@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ExternalLink } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { canSeeOrder } from "@/lib/order-scope";
 import { getSettings, availablePaymentMethods } from "@/lib/settings";
 import { CUSTOMER_CANCELLABLE } from "@/lib/orders";
 import { formatMoney } from "@/lib/money";
@@ -28,7 +29,7 @@ export default async function OrderDetail({ params }: { params: Promise<{ number
   const { number } = await params;
   const user = await requireUser(`/account/orders/${number}`);
   const order = await db.order.findUnique({ where: { number }, include: { items: true, events: { where: { isPublic: true }, orderBy: { createdAt: "asc" } } } });
-  if (!order || order.userId !== user.id) notFound();
+  if (!order || !canSeeOrder(user, order)) notFound();
   const s = await getSettings();
   const a = order.shippingAddress as ShippingAddress;
   const deliveredAt = order.events.filter((e) => e.status === "DELIVERED").at(-1)?.createdAt;

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { canSeeOrder } from "@/lib/order-scope";
 import { getSettings } from "@/lib/settings";
 import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/utils";
@@ -16,7 +17,7 @@ export default async function Invoice({ params }: { params: Promise<{ number: st
   const { number } = await params;
   const user = await requireUser(`/account/orders/${number}/invoice`);
   const order = await db.order.findUnique({ where: { number }, include: { items: true } });
-  if (!order || order.userId !== user.id || order.status === "PENDING_PAYMENT") notFound();
+  if (!order || !canSeeOrder(user, order) || order.status === "PENDING_PAYMENT") notFound();
   const s = await getSettings();
   const a = order.shippingAddress as ShippingAddress;
   return (

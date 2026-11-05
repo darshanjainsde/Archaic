@@ -6,7 +6,7 @@ export const SESSION_MAX_AGE = 60 * 60 * 24 * 30; // 30 days
 
 export type SessionPayload = { sub: string; role: "CUSTOMER" | "ADMIN"; v: number };
 
-function key() {
+export function key() {
   const secret = process.env.AUTH_SECRET;
   if (!secret || secret.length < 32) {
     if (process.env.NODE_ENV === "production") throw new Error("AUTH_SECRET must be set (32+ chars)");

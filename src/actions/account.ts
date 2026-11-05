@@ -82,6 +82,10 @@ export async function updateProfile(_: ActionResult | undefined, fd: FormData): 
     })
     .safeParse({ name: fd.get("name") ?? "", phone: fd.get("phone") ?? "", marketing: fd.get("marketing") === "on" });
   if (!parsed.success) return { ok: false, fieldErrors: fieldErrors(parsed.error) };
+  if (parsed.data.phone) {
+    const taken = await db.user.findUnique({ where: { phone: parsed.data.phone }, select: { id: true } });
+    if (taken && taken.id !== user.id) return { ok: false, fieldErrors: { phone: "This mobile number is already used by another account." } };
+  }
   await db.user.update({ where: { id: user.id }, data: { name: parsed.data.name, phone: parsed.data.phone || null, marketingOptIn: parsed.data.marketing } });
   if (parsed.data.marketing) await db.subscriber.upsert({ where: { email: user.email }, create: { email: user.email }, update: {} }).catch(() => {});
   else await db.subscriber.deleteMany({ where: { email: user.email } }).catch(() => {});
@@ -97,17 +101,18 @@ export async function changePassword(_: ActionResult | undefined, fd: FormData):
   if (!next.success) return { ok: false, fieldErrors: { password: next.error.issues[0].message } };
   if (String(fd.get("confirm") ?? "") !== next.data) return { ok: false, fieldErrors: { confirm: "Passwords do not match" } };
   const row = await db.user.findUniqueOrThrow({ where: { id: user.id } });
-  if (!(await verifyPassword(current, row.passwordHash))) return { ok: false, fieldErrors: { current: "Your current password is not correct" } };
+  // Google-only accounts have no password yet: they can create one while signed in
+  if (row.passwordHash && !(await verifyPassword(current, row.passwordHash))) return { ok: false, fieldErrors: { current: "Your current password is not correct" } };
   const updated = await db.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(next.data), tokenVersion: { increment: 1 } } });
   await createSession(updated); // signs out every other device
-  return { ok: true, message: "Password changed. Other devices have been signed out." };
+  return { ok: true, message: row.passwordHash ? "Password changed. Other devices have been signed out." : "Password created. You can now also sign in with your email or mobile number." };
 }
 
 /* ---------- orders ---------- */
 async function ownedOrder(number: string) {
   const user = await me();
   const order = await db.order.findUnique({ where: { number: String(number) }, include: { items: true } });
-  if (!order || order.userId !== user.id) throw new Error("Order not found");
+  if (!order || !(user.emailVerified || !order.isGuest) || order.userId !== user.id) throw new Error("Order not found");
   return order;
 }
 

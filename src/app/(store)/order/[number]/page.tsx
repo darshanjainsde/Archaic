@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { requireUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { canAccessOrder } from "@/lib/guest-orders";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { formatMoney } from "@/lib/money";
@@ -14,10 +15,11 @@ export const metadata: Metadata = { title: "Thank you", robots: { index: false }
 
 export default async function OrderThanks({ params }: { params: Promise<{ number: string }> }) {
   const { number } = await params;
-  const user = await requireUser(`/order/${number}`);
+  const user = await getCurrentUser();
   const order = await db.order.findUnique({ where: { number }, include: { items: true } });
-  if (!order || order.userId !== user.id) notFound();
-  if (order.status === "PENDING_PAYMENT") redirect(`/account/orders/${number}`);
+  if (!order || !(await canAccessOrder(order, user))) notFound();
+  const guest = !user || order.userId !== user.id;
+  if (order.status === "PENDING_PAYMENT") redirect(guest ? `/checkout/return?order=${number}` : `/account/orders/${number}`);
   const s = await getSettings();
   const a = order.shippingAddress as ShippingAddress;
   return (
@@ -25,7 +27,7 @@ export default async function OrderThanks({ params }: { params: Promise<{ number
       <ClearCart />
       <div className="grid gap-10 lg:grid-cols-[1fr_420px]">
         <div className="space-y-6">
-          <h1 className="text-5xl md:text-7xl">Thank you, {user.name.split(" ")[0]}</h1>
+          <h1 className="text-5xl md:text-7xl">Thank you, {(user && !guest ? user.name : String((order.shippingAddress as { name?: string } | null)?.name ?? "")).split(" ")[0]}</h1>
           <p className="max-w-xl text-lg">
             Order <b className="tabular-nums">{order.number}</b> is confirmed{order.paymentMethod === "COD" ? " — pay when it arrives" : " and paid"}. A confirmation is on its way to {order.email}.
           </p>
@@ -38,9 +40,14 @@ export default async function OrderThanks({ params }: { params: Promise<{ number
             </ol>
           </div>
           <div className="flex flex-wrap gap-3">
-            <Link href={`/account/orders/${order.number}`} className="btn btn-primary">Track this order</Link>
+            <Link href={guest ? `/track?order=${order.number}&contact=${encodeURIComponent(order.email)}` : `/account/orders/${order.number}`} className="btn btn-primary">Track this order</Link>
             <Link href="/shop" className="btn btn-ghost">Continue shopping</Link>
           </div>
+          {guest && (
+            <p className="max-w-xl text-[16px]">
+              Want every order in one place? <Link href={`/register?next=${encodeURIComponent("/account")}`} className="font-semibold underline">Create an account</Link> or <Link href="/login?next=/account" className="font-semibold underline">sign in</Link> with <b>{order.email}</b>, and this order will be there once you confirm that email.
+            </p>
+          )}
         </div>
         <aside className="bg-paper p-6 text-paper-ink" style={{ borderRadius: "var(--radius)" }}>
           <h2 className="mb-4 text-2xl">Order summary</h2>

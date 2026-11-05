@@ -6,7 +6,7 @@ import bcrypt from "bcryptjs";
 import { db } from "./db";
 import { SESSION_COOKIE, SESSION_MAX_AGE, signSession, verifySession } from "./session-token";
 
-export type SessionUser = { id: string; email: string; name: string; phone: string | null; role: "CUSTOMER" | "ADMIN" };
+export type SessionUser = { id: string; email: string; name: string; phone: string | null; role: "CUSTOMER" | "ADMIN"; emailVerified: boolean; hasPassword: boolean };
 
 export async function hashPassword(pw: string) {
   return bcrypt.hash(pw, 11);
@@ -39,10 +39,10 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   if (!payload) return null;
   const user = await db.user.findUnique({
     where: { id: payload.sub },
-    select: { id: true, email: true, name: true, phone: true, role: true, tokenVersion: true },
+    select: { id: true, email: true, name: true, phone: true, role: true, tokenVersion: true, emailVerified: true, passwordHash: true },
   });
   if (!user || user.tokenVersion !== payload.v) return null;
-  return { id: user.id, email: user.email, name: user.name, phone: user.phone, role: user.role };
+  return { id: user.id, email: user.email, name: user.name, phone: user.phone, role: user.role, emailVerified: user.emailVerified, hasPassword: Boolean(user.passwordHash) };
 });
 
 export async function requireUser(next = "/account"): Promise<SessionUser> {

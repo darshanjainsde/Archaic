@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import { canAccessOrder } from "@/lib/guest-orders";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { getCashfreeOrder, getCashfreePayments } from "@/lib/payments/cashfree";
@@ -12,10 +13,11 @@ export const metadata: Metadata = { title: "Payment status", robots: { index: fa
 
 export default async function CashfreeReturn({ searchParams }: { searchParams: Promise<{ order?: string }> }) {
   const { order: number } = await searchParams;
-  const user = await requireUser(`/checkout/return?order=${encodeURIComponent(number ?? "")}`);
-  if (!number) redirect("/account/orders");
+  const user = await getCurrentUser();
+  if (!number) redirect("/shop");
   const order = await db.order.findUnique({ where: { number: String(number) } });
-  if (!order || order.userId !== user.id) redirect("/account/orders");
+  if (!order || !(await canAccessOrder(order, user))) redirect(user ? "/account/orders" : "/track");
+  const ownGuest = !user || order.userId !== user.id;
 
   let status = order.paymentStatus;
   if (status !== "PAID" && order.paymentMethod === "CASHFREE" && order.gatewayOrderId) {
@@ -46,7 +48,7 @@ export default async function CashfreeReturn({ searchParams }: { searchParams: P
         <p className="text-lg">We did not receive the payment for order <b className="tabular-nums">{order.number}</b>. Nothing has been charged — or if money left your account, it will be confirmed here automatically within a few minutes, or refunded by your bank.</p>
         <div className="flex flex-wrap gap-3">
           <PayNowButton number={order.number} accent={s.theme.colors.accent} label="Try again" />
-          <Link href={`/account/orders/${order.number}`} className="btn btn-ghost">View order</Link>
+          <Link href={ownGuest ? `/track?order=${order.number}&contact=${encodeURIComponent(order.email)}` : `/account/orders/${order.number}`} className="btn btn-ghost">View order</Link>
         </div>
       </div>
     </div>

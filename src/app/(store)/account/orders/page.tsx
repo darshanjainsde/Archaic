@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { ownedOrders } from "@/lib/order-scope";
 import { OrderRow } from "@/components/account/order-row";
 
 export const metadata: Metadata = { title: "My orders", robots: { index: false } };
@@ -12,8 +13,8 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const user = await requireUser("/account/orders");
   const page = Math.max(1, Math.trunc(Number(raw) || 1));
   const [total, orders] = await Promise.all([
-    db.order.count({ where: { userId: user.id } }),
-    db.order.findMany({ where: { userId: user.id }, orderBy: { createdAt: "desc" }, skip: (page - 1) * PER, take: PER, include: { items: { select: { image: true, name: true, quantity: true } } } }),
+    db.order.count({ where: ownedOrders(user) }),
+    db.order.findMany({ where: ownedOrders(user), orderBy: { createdAt: "desc" }, skip: (page - 1) * PER, take: PER, include: { items: { select: { image: true, name: true, quantity: true } } } }),
   ]);
   const pages = Math.max(1, Math.ceil(total / PER));
   return (

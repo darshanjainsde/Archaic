@@ -9,6 +9,8 @@ import { createRazorpayOrder, razorpayKeyId, verifyRazorpaySignature, fetchRazor
 import { createCashfreeOrder, cashfreeMode } from "@/lib/payments/cashfree";
 import { siteUrl } from "@/lib/utils";
 import { rateLimit } from "@/lib/rate-limit";
+import { clientIp } from "@/lib/request";
+import { canAccessOrder, rememberGuestOrder } from "@/lib/guest-orders";
 import type { PaymentMethod } from "@prisma/client";
 
 const lineSchema = z.object({
@@ -51,6 +53,8 @@ const placeSchema = z.object({
   address: z.unknown().optional(),
   saveAddress: z.boolean().default(true),
   phone: z.string().max(20).nullish(),
+  /** Guests only: the email the order and updates go to */
+  email: z.string().max(160).nullish(),
 });
 
 async function launchGateway(order: { id: string; number: string; total: number; paymentMethod: PaymentMethod; email: string; shippingAddress: unknown }, user: { id: string; name: string; email: string; phone: string | null }): Promise<GatewayLaunch> {
@@ -79,21 +83,35 @@ async function launchGateway(order: { id: string; number: string; total: number;
 }
 
 export async function placeOrder(raw: unknown): Promise<PlaceOrderResult> {
-  const user = await getCurrentUser();
-  if (!user) return { ok: false, error: "Please sign in to place your order" };
-  const rl = rateLimit(`place:${user.id}`, 8, 60_000);
+  const signedIn = await getCurrentUser();
+  const ip = await clientIp();
+  const rl = rateLimit(signedIn ? `place:${signedIn.id}` : `place-guest:${ip}`, 8, 60_000);
   if (!rl.ok) return { ok: false, error: `Too many attempts. Try again in ${rl.retryAfter}s` };
 
   const parsed = placeSchema.safeParse(raw);
   if (!parsed.success) return { ok: false, error: parsed.error.issues[0]?.message ?? "Please check your details", fieldErrors: fieldErrors(parsed.error) };
   const input = parsed.data;
+
+  // Who owns the order. Signed-in: the account. Guest: the record for that email (created if new, no password),
+  // so the order shows up when the owner of that email later signs in or claims it. Guests never get that account's data.
+  const isGuest = !signedIn;
+  let user: { id: string; name: string; email: string; phone: string | null };
+  if (signedIn) {
+    user = signedIn;
+  } else {
+    const email = String(input.email ?? "").trim().toLowerCase();
+    if (!z.email().safeParse(email).success) return { ok: false, error: "Enter a valid email address for your order updates", fieldErrors: { email: "Enter a valid email address" } };
+    const nm = String((input.address as { name?: string } | undefined)?.name ?? "").trim().slice(0, 80) || "Customer";
+    const rec = await db.user.upsert({ where: { email }, create: { email, name: nm }, update: {}, select: { id: true, name: true, email: true, phone: true } });
+    user = rec;
+  }
   const s = await getSettings();
   const methods = availablePaymentMethods(s);
   if (!methods.includes(input.paymentMethod)) return { ok: false, error: "That payment method is not available right now" };
 
   // Address: saved (must be owned) or new
   let address;
-  if (input.addressId) {
+  if (input.addressId && !isGuest) {
     const a = await db.address.findFirst({ where: { id: input.addressId, userId: user.id } });
     if (!a) return { ok: false, error: "Please choose a delivery address" };
     address = { name: a.name, phone: a.phone, line1: a.line1, line2: a.line2, landmark: a.landmark, city: a.city, state: a.state, pincode: a.pincode, country: a.country };
@@ -103,7 +121,7 @@ export async function placeOrder(raw: unknown): Promise<PlaceOrderResult> {
     address = a.data;
   }
 
-  const quote = await quoteCart({ lines: input.lines, couponCode: input.couponCode, giftWrap: input.giftWrap, paymentMethod: input.paymentMethod, userId: user.id, settings: s });
+  const quote = await quoteCart({ lines: input.lines, couponCode: input.couponCode, giftWrap: input.giftWrap, paymentMethod: input.paymentMethod, userId: isGuest ? null : user.id, settings: s });
   if (quote.hasErrors) return { ok: false, error: "Some items in your bag need attention", quote };
   const valid = quote.lines.filter((l) => !l.error);
   if (valid.length === 0) return { ok: false, error: "Your bag is empty", quote };
@@ -113,18 +131,19 @@ export async function placeOrder(raw: unknown): Promise<PlaceOrderResult> {
 
   const order = await db.$transaction(async (tx) => {
     const number = await nextOrderNumber(tx);
-    if (!input.addressId && input.saveAddress) {
+    if (!isGuest && !input.addressId && input.saveAddress) {
       const count = await tx.address.count({ where: { userId: user.id } });
       if (count < 10) await tx.address.create({ data: { ...address, userId: user.id, isDefault: count === 0 } });
     }
-    if (input.phone && !user.phone) {
+    if (!isGuest && input.phone && !user.phone) {
       const p = input.phone.replace(/\D/g, "").slice(-10);
-      if (/^[6-9]\d{9}$/.test(p)) await tx.user.update({ where: { id: user.id }, data: { phone: p } });
+      if (/^[6-9]\d{9}$/.test(p) && !(await tx.user.findFirst({ where: { phone: p }, select: { id: true } }))) await tx.user.update({ where: { id: user.id }, data: { phone: p } });
     }
     const created = await tx.order.create({
       data: {
         number,
         userId: user.id,
+        isGuest,
         email: user.email,
         paymentMethod: input.paymentMethod,
         status: "PENDING_PAYMENT",
@@ -153,12 +172,13 @@ export async function placeOrder(raw: unknown): Promise<PlaceOrderResult> {
     return created;
   });
 
+  if (isGuest) await rememberGuestOrder(order.number);
   if (input.paymentMethod === "COD") {
     await sendOrderEmail(order.id, "confirmed").catch(() => {});
     return { ok: true, launch: { kind: "cod", number: order.number } };
   }
   try {
-    const launch = await launchGateway(order, user);
+    const launch = await launchGateway(order, { id: user.id, name: (address as { name?: string }).name || user.name, email: user.email, phone: user.phone });
     return { ok: true, launch };
   } catch (err) {
     console.error("[checkout] gateway launch failed", err);
@@ -168,9 +188,8 @@ export async function placeOrder(raw: unknown): Promise<PlaceOrderResult> {
 
 export async function verifyRazorpayPayment(input: { number: string; razorpay_order_id: string; razorpay_payment_id: string; razorpay_signature: string }): Promise<{ ok: boolean; error?: string }> {
   const user = await getCurrentUser();
-  if (!user) return { ok: false, error: "Please sign in" };
   const order = await db.order.findUnique({ where: { number: String(input.number) } });
-  if (!order || order.userId !== user.id) return { ok: false, error: "Order not found" };
+  if (!order || !(await canAccessOrder(order, user))) return { ok: false, error: "Order not found" };
   if (order.paymentStatus === "PAID") return { ok: true };
   if (order.paymentMethod !== "RAZORPAY" || order.gatewayOrderId !== input.razorpay_order_id) return { ok: false, error: "Payment does not match this order" };
   if (!verifyRazorpaySignature(input.razorpay_order_id, input.razorpay_payment_id, input.razorpay_signature)) return { ok: false, error: "Payment could not be verified" };
@@ -181,9 +200,8 @@ export async function verifyRazorpayPayment(input: { number: string; razorpay_or
 /** Called when the Razorpay modal is closed without paying or a payment fails client-side. */
 export async function reportPaymentFailure(number: string, reason: string) {
   const user = await getCurrentUser();
-  if (!user) return;
   const order = await db.order.findUnique({ where: { number: String(number) } });
-  if (!order || order.userId !== user.id) return;
+  if (!order || !(await canAccessOrder(order, user))) return;
   // If the gateway actually captured (race), finalize instead of failing
   if (order.paymentMethod === "RAZORPAY" && order.gatewayOrderId) {
     const payments = await fetchRazorpayOrderPayments(order.gatewayOrderId).catch(() => []);
@@ -195,11 +213,10 @@ export async function reportPaymentFailure(number: string, reason: string) {
 
 export async function retryPayment(number: string, method?: string): Promise<PlaceOrderResult> {
   const user = await getCurrentUser();
-  if (!user) return { ok: false, error: "Please sign in" };
-  const rl = rateLimit(`retry:${user.id}`, 8, 60_000);
+  const rl = rateLimit(`retry:${user?.id ?? await clientIp()}`, 8, 60_000);
   if (!rl.ok) return { ok: false, error: `Too many attempts. Try again in ${rl.retryAfter}s` };
   const order = await db.order.findUnique({ where: { number: String(number) }, include: { items: { include: { product: { select: { status: true } } } } } });
-  if (!order || order.userId !== user.id) return { ok: false, error: "Order not found" };
+  if (!order || !(await canAccessOrder(order, user))) return { ok: false, error: "Order not found" };
   if (order.paymentStatus === "PAID") return { ok: false, error: "This order is already paid" };
   if (order.status !== "PENDING_PAYMENT") return { ok: false, error: "This order can no longer be paid" };
   if (order.items.some((i) => !i.product || i.product.status !== "ACTIVE")) return { ok: false, error: "An item in this order is no longer available. Please cancel and place a new order." };
@@ -214,7 +231,7 @@ export async function retryPayment(number: string, method?: string): Promise<Pla
   }
   if (chosen !== order.paymentMethod) await db.order.update({ where: { id: order.id }, data: { paymentMethod: chosen } });
   try {
-    return { ok: true, launch: await launchGateway({ ...order, paymentMethod: chosen }, user) };
+    return { ok: true, launch: await launchGateway({ ...order, paymentMethod: chosen }, { id: order.userId, name: ((order.shippingAddress as { name?: string } | null)?.name) || "Customer", email: order.email, phone: null }) };
   } catch (err) {
     return { ok: false, error: (err as Error).message || "Payment could not be started" };
   }
