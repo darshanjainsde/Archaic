@@ -69,3 +69,37 @@ export const cart = {
   setGift(giftWrap: boolean, giftMessage?: string) { load(); set({ ...state, giftWrap, giftMessage: giftMessage ?? state.giftMessage }); },
   clear() { set({ ...EMPTY }); },
 };
+
+/* ---------- Buy now: a one-item express checkout that never touches the bag ---------- */
+const XKEY = "ac_buynow_v1";
+const DONE = "ac_buynow_done";
+let xline: CartLine | null = null;
+let xloaded = false;
+const xlisteners = new Set<() => void>();
+function xload() {
+  if (xloaded || typeof window === "undefined") return;
+  xloaded = true;
+  try { const raw = sessionStorage.getItem(XKEY); xline = raw ? (JSON.parse(raw) as CartLine) : null; } catch { xline = null; }
+}
+function xset(next: CartLine | null) {
+  xline = next;
+  try { if (next) sessionStorage.setItem(XKEY, JSON.stringify(next)); else sessionStorage.removeItem(XKEY); } catch {}
+  xlisteners.forEach((l) => l());
+}
+export const express = {
+  /** Replace the express item (Buy now) and keep the bag as it is. */
+  set(line: CartLine) { xload(); xset({ ...line, quantity: Math.max(1, line.quantity) }); },
+  setQty(q: number, max = 10) { xload(); if (xline) xset({ ...xline, quantity: Math.max(1, Math.min(max, Math.trunc(q))) }); },
+  get: () => { xload(); return xline; },
+  clear() { xset(null); },
+  /** Remember which order came from Buy now, so the thank-you page clears the express item, not the bag. */
+  markPlaced(number: string) { try { sessionStorage.setItem(DONE, number); } catch {} },
+  wasExpress(number: string) { try { return sessionStorage.getItem(DONE) === number; } catch { return false; } },
+};
+export function useExpress() {
+  return useSyncExternalStore(
+    (cb) => { xload(); xlisteners.add(cb); return () => xlisteners.delete(cb); },
+    () => { xload(); return xline; },
+    () => null,
+  );
+}

@@ -22,7 +22,7 @@ export function OrderTimeline({ status, events, eta }: { status: OrderStatus; ev
           return (
             <li key={s} className="relative flex gap-3 pb-6 md:flex-col md:gap-2 md:pb-0 md:pr-3" aria-current={current ? "step" : undefined}>
               {i < FLOW.length - 1 && <span aria-hidden className={`absolute left-[13px] top-7 h-[calc(100%-28px)] w-[3px] md:left-7 md:top-[13px] md:h-[3px] md:w-[calc(100%-28px)] ${i < lastFlowIdx ? "bg-accent" : "bg-surface"}`} />}
-              <span className={`relative z-10 grid h-7 w-7 shrink-0 place-items-center rounded-full ${done ? "bg-accent text-accent-ink" : "bg-surface"} ${current ? "ring-4 ring-[color-mix(in_srgb,var(--accent)_35%,transparent)]" : ""}`}>
+              <span className={`relative z-10 grid h-7 w-7 shrink-0 place-items-center rounded-full ${done ? "bg-accent text-accent-ink" : "border-2 border-[color-mix(in_oklab,var(--sale)_45%,var(--muted))] bg-paper"} ${current ? "ring-4 ring-[color-mix(in_srgb,var(--accent)_35%,transparent)]" : ""}`}>
                 {done && <Check size={16} strokeWidth={3} aria-hidden />}
               </span>
               <span className="text-[15px]">

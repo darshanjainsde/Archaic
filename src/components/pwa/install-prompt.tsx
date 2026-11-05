@@ -15,6 +15,11 @@ export function InstallPrompt({ storeName }: { storeName: string }) {
     try { dismissed = localStorage.getItem("ac_install_dismissed") === "1"; } catch {}
     const standalone = window.matchMedia("(display-mode: standalone)").matches || (navigator as unknown as { standalone?: boolean }).standalone;
     if (dismissed || standalone) return;
+    // Phones only, and only from the second visit, so it never covers checkout or an order on a first look
+    const phone = window.matchMedia("(max-width: 767px), (pointer: coarse)").matches;
+    let visits = 0;
+    try { visits = Number(localStorage.getItem("ac_visits") || "0") + (sessionStorage.getItem("ac_visit_counted") ? 0 : 1); localStorage.setItem("ac_visits", String(visits)); sessionStorage.setItem("ac_visit_counted", "1"); } catch {}
+    if (!phone || visits < 2 || /^\/(checkout|cart|order|account)/.test(location.pathname)) return;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const onBip = (e: Event) => { e.preventDefault(); setEvt(e as BIPEvent); timer = setTimeout(() => setShow(true), 25000); };
     window.addEventListener("beforeinstallprompt", onBip);

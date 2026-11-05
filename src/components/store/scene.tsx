@@ -87,7 +87,9 @@ export function Scene() {
       const open = 0.18 + p * 0.82;
       const rowH = cw * 0.86 * open;
       const drift = reduce ? 0 : (scrollY * 0.18) % (rowH * 2);
-      const key = `${w}x${h}:${p.toFixed(3)}:${drift.toFixed(1)}`;
+      // Working pages (bag, checkout, account, track, sign-in) get a quiet lattice: faint, edges only, no glow fills
+      const quiet = document.documentElement.dataset.quiet === "1";
+      const key = `${w}x${h}:${p.toFixed(3)}:${drift.toFixed(1)}:${quiet}`;
       if (key === S.key) return;
       S.key = key;
       const { cx, cy } = candlePos();
@@ -117,13 +119,14 @@ export function Scene() {
       for (let b = 0; b < BUCKETS; b++) {
         const glow = (b + 0.5) / BUCKETS;
         const fa = glow * glow * (light ? 0.1 : 0.16) * p;
-        if (fa > 0.01) { lctx.fillStyle = rgba(warm, fa); lctx.fill(fills[b]); }
-        lctx.strokeStyle = rgba(kraft, (light ? 0.2 : 0.16) + glow * 0.25 * p);
+        if (fa > 0.01 && !quiet) { lctx.fillStyle = rgba(warm, fa); lctx.fill(fills[b]); }
+        lctx.strokeStyle = rgba(kraft, ((light ? 0.2 : 0.16) + glow * 0.25 * p) * (quiet ? 0.4 : 1));
         lctx.stroke(strokes[b]);
       }
       // reading veil: keeps the lattice quiet behind the content column
       const veil = lctx.createLinearGradient(0, 0, w, 0);
-      veil.addColorStop(0, rgba(bg, 0.18)); veil.addColorStop(0.5, rgba(bg, 0.42)); veil.addColorStop(1, rgba(bg, 0.12));
+      if (quiet) { veil.addColorStop(0, rgba(bg, 0)); veil.addColorStop(0.18, rgba(bg, 0.92)); veil.addColorStop(0.82, rgba(bg, 0.92)); veil.addColorStop(1, rgba(bg, 0)); }
+      else { veil.addColorStop(0, rgba(bg, 0.18)); veil.addColorStop(0.5, rgba(bg, 0.42)); veil.addColorStop(1, rgba(bg, 0.12)); }
       lctx.fillStyle = veil; lctx.fillRect(0, 0, w, h);
     };
 

@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2, Lock } from "lucide-react";
-import { useCart, cart } from "@/lib/cart-store";
+import { useCart, cart, useExpress, express } from "@/lib/cart-store";
 import { Img } from "@/components/ui/img";
 import { EmptyState } from "@/components/ui/empty";
 import { formatMoney } from "@/lib/money";
@@ -31,6 +31,8 @@ export function CheckoutView(p: {
   user: { name: string; email: string; phone: string | null };
   /** Not signed in: ask for an email, no saved addresses */
   guest?: boolean;
+  /** Buy now: check out only the express item, never the bag */
+  buyNow?: boolean;
   signInHref?: string;
   googleHref?: string | null;
   addresses: SavedAddress[];
@@ -51,6 +53,27 @@ export function CheckoutView(p: {
   const [addr, setAddr] = useState<AddressForm>({ ...EMPTY_ADDRESS, name: p.user.name, phone: p.user.phone ?? "" });
   const [saveAddress, setSaveAddress] = useState(!p.guest);
   const [email, setEmail] = useState("");
+  // Returning guests on this device: fill in what they typed last time
+  useEffect(() => {
+    if (!p.guest) return;
+    try {
+      const saved = JSON.parse(localStorage.getItem("ac_guest_profile") || "null") as { email?: string; addr?: AddressForm } | null;
+      if (saved?.email) setEmail(saved.email);
+      if (saved?.addr) setAddr((a) => ({ ...a, ...saved.addr }));
+    } catch {}
+  }, [p.guest]);
+  // PIN code fills city and state (India Post); typed values are never overwritten
+  useEffect(() => {
+    const pin = addr.pincode;
+    if (!/^[1-9]\d{5}$/.test(pin) || (addr.city && addr.state)) return;
+    let alive = true;
+    fetch(`https://api.postalpincode.in/pincode/${pin}`).then((r) => r.json()).then((d) => {
+      const po = d?.[0]?.PostOffice?.[0];
+      if (!alive || !po) return;
+      setAddr((a) => (a.pincode !== pin ? a : { ...a, city: a.city || po.District || "", state: a.state || po.State || "" }));
+    }).catch(() => {});
+    return () => { alive = false; };
+  }, [addr.pincode, addr.city, addr.state]);
   const [method, setMethod] = useState<Method | null>(p.methods[0] ?? null);
   const [notes, setNotes] = useState("");
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -58,7 +81,11 @@ export function CheckoutView(p: {
   const [pending, startTransition] = useTransition();
   const [paying, setPaying] = useState(false);
   const busy = useRef(false);
-  const { quote, loading } = useQuote(c.lines, c.couponCode, c.giftWrap, method);
+  const xItem = useExpress();
+  const isExpress = Boolean(p.buyNow && xItem);
+  const lines = isExpress && xItem ? [xItem] : c.lines;
+  const finishOk = (n: string) => { if (isExpress) express.clear(); else cart.clear(); router.replace(`/order/${n}`); };
+  const { quote, loading } = useQuote(lines, c.couponCode, c.giftWrap, method);
 
   const codBlocked = useMemo(() => Boolean(quote && p.codMaxOrder > 0 && quote.total - quote.codFee > p.codMaxOrder), [quote, p.codMaxOrder]);
   useEffect(() => {
@@ -71,7 +98,7 @@ export function CheckoutView(p: {
   // Phones: the order summary sits under a long form, so keep the total visible with a shortcut down to it.
   const payRef = useRef<HTMLButtonElement>(null);
   const [dock, setDock] = useState(false);
-  const hasLines = c.lines.length > 0;
+  const hasLines = lines.length > 0;
   useEffect(() => {
     const el = payRef.current;
     if (!mounted || !hasLines || !el || typeof IntersectionObserver === "undefined") return;
@@ -81,7 +108,7 @@ export function CheckoutView(p: {
   }, [mounted, hasLines]);
 
   if (!mounted) return <div className="skeleton h-96 w-full" aria-label="Loading checkout" />;
-  if (c.lines.length === 0) return <EmptyState title="Your bag is empty" text="Add something to your bag before checking out." href="/shop" cta="Browse candles" />;
+  if (lines.length === 0) return <EmptyState title="Your bag is empty" text="Add something to your bag before checking out." href="/shop" cta="Browse candles" />;
 
   const submit = () => {
     if (busy.current) return;
@@ -107,7 +134,7 @@ export function CheckoutView(p: {
     startTransition(async () => {
       try {
         const res = await placeOrder({
-          lines: c.lines.map((l) => ({ productId: l.productId, quantity: l.quantity, selections: l.selections, personalization: l.personalization ?? null })),
+          lines: lines.map((l) => ({ productId: l.productId, quantity: l.quantity, selections: l.selections, personalization: l.personalization ?? null })),
           couponCode: c.couponCode,
           giftWrap: c.giftWrap,
           isGift: c.giftWrap,
@@ -127,17 +154,17 @@ export function CheckoutView(p: {
           return;
         }
         const n = res.launch.number;
-        if (res.launch.kind === "cod") {
-          cart.clear();
-          router.replace(`/order/${n}`);
-          return;
-        }
+        if (isExpress) express.markPlaced(n);
+        if (p.guest) { try { localStorage.setItem("ac_guest_profile", JSON.stringify({ email: email.trim(), addr })); } catch {} }
+        if (res.launch.kind === "cod") { finishOk(n); return; }
         setPaying(true);
         try {
           const outcome = await launchPayment(res.launch, p.accent);
           if (outcome === "paid") {
-            cart.clear();
-            router.replace(`/order/${n}`);
+            finishOk(n);
+          } else if (outcome === "checked") {
+            // Cashfree popup closed: the server checks the real payment status and sends paid orders to the thank-you page
+            router.replace(`/checkout/return?order=${n}`);
           } else if (outcome === "dismissed") {
             toast("Payment not completed", { description: `Order ${n} is saved. You can pay for it from My orders.` });
             router.replace(p.guest ? `/checkout/return?order=${n}` : `/account/orders/${n}`);
@@ -145,7 +172,7 @@ export function CheckoutView(p: {
           // "redirect": the browser is leaving for Cashfree
         } catch (e) {
           toast.error((e as Error).message || "Payment failed");
-          router.replace(`/account/orders/${n}`);
+          router.replace(p.guest ? `/checkout/return?order=${n}` : `/account/orders/${n}`);
         }
       } catch {
         setFormError("Something went wrong. Please check your connection and try again.");
@@ -159,6 +186,11 @@ export function CheckoutView(p: {
   return (
     <div className="grid gap-10 lg:grid-cols-[1fr_420px] lg:items-start">
       <div className="space-y-10">
+        {isExpress && (
+          <p role="status" className="bg-surface p-4 text-[15px]" style={{ borderRadius: "var(--radius)" }}>
+            <b>Buying now:</b> only {xItem?.name}. Your bag is kept as it is{c.lines.length ? ` (${c.count} item${c.count === 1 ? "" : "s"})` : ""}.
+          </p>
+        )}
         <section aria-labelledby="contact-h">
           <h2 id="contact-h" className="mb-3 text-3xl">Contact</h2>
           {p.guest ? (
@@ -262,7 +294,7 @@ export function CheckoutView(p: {
       <aside id="order-summary" className="scroll-mt-24 bg-paper p-6 text-paper-ink lg:sticky lg:top-24" style={paperVars} aria-label="Order summary">
         <h2 className="mb-4 flex items-center gap-2 text-3xl">Your order {loading && <Loader2 size={18} className="animate-spin" aria-label="Updating" />}</h2>
         <ul className="mb-5 space-y-3">
-          {c.lines.map((l, i) => {
+          {lines.map((l, i) => {
             const q = quote?.lines[i];
             return (
               <li key={l.key} className="flex gap-3">
@@ -279,7 +311,7 @@ export function CheckoutView(p: {
         </ul>
         <CouponForm code={c.couponCode} error={quote?.couponError ?? null} applied={Boolean(quote?.couponCode)} onApply={(code) => cart.setCoupon(code)} />
         {quote && quote.milestones.length > 0 && <RewardsBar q={quote} className="mt-5" />}
-        {quote && quote.next && <UpsellRail q={quote} inBag={c.lines.map((l) => l.productId)} place="checkout" className="mt-6" />}
+        {quote && quote.next && !isExpress && <UpsellRail q={quote} inBag={lines.map((l) => l.productId)} place="checkout" className="mt-6" />}
         <div className="mt-5">{quote ? <SummaryRows q={quote} showCod /> : <div className="skeleton h-32" />}</div>
         {quote?.hasErrors && <p className="error-text mt-3" role="alert">Some items need attention. <Link href="/cart" className="underline">Review your bag</Link></p>}
         {formError && <p className="error-text mt-3 text-[15px]" role="alert">{formError}</p>}

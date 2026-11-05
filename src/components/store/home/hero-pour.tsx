@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { addWithDefaults, canAddWithDefaults } from "@/lib/quick-add";
+import { addWithDefaults, canAddWithDefaults, buyNowWithDefaults } from "@/lib/quick-add";
 import { formatMoney } from "@/lib/money";
 import type { OptionGroup, Personalization } from "@/lib/types";
 
@@ -257,6 +257,7 @@ function HeroCard({ product: p, buyNow }: { product: HeroProduct; buyNow: boolea
   const compare = p.compareAtPrice && p.compareAtPrice > p.price ? p.compareAtPrice : null;
 
   function add(now: boolean) {
+    if (now) { if (buyNowWithDefaults(p) === "invalid") router.push(href); else router.push("/checkout?buy=1"); return; }
     const r = addWithDefaults(p, p.maxQty);
     if (r === "invalid") { router.push(href); return; }
     if (r === "max" && !now) { toast(`You already have the most we can send of this`, { action: { label: "View bag", onClick: () => router.push("/cart") } }); return; }

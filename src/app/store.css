@@ -265,3 +265,15 @@ body:has(main :is(input:not([type="checkbox"]):not([type="radio"]), textarea, se
   .candle-opt .fl, [data-lit] .lit-flame { animation: none; }
   .lit-layer, .lit-flame, .lit-img { transition: none; }
 }
+
+
+/* ===== Working pages (bag, checkout, account, order, track, sign-in): paper sheets on a quiet lattice =====
+   QuietRoutes sets html[data-quiet]; Scene draws the lattice faint and edges-only there. Panels become cream paper
+   sheets with a hairline edge, so text never sits on the pattern. Only padded panels: thumbnails and steppers keep surface. */
+html[data-quiet] main .bg-surface:is([class*=" p-"], [class^="p-"], [class*=" px-"]),
+html[data-quiet] main aside.bg-paper {
+  background: var(--paper);
+  color: var(--paper-ink);
+  box-shadow: 0 0 0 1px color-mix(in oklab, var(--ink) 14%, transparent), 0 24px 48px -30px color-mix(in oklab, var(--ink) 45%, transparent);
+}
+html[data-quiet] main .bg-surface:is([class*=" p-"], [class^="p-"]) .text-muted { color: color-mix(in oklab, var(--paper-ink) 72%, var(--paper)); }

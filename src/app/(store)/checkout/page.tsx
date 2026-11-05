@@ -7,7 +7,8 @@ import { CheckoutView } from "@/components/checkout/checkout-view";
 
 export const metadata: Metadata = { title: "Checkout", robots: { index: false } };
 
-export default async function CheckoutPage() {
+export default async function CheckoutPage({ searchParams }: { searchParams: Promise<{ buy?: string }> }) {
+  const { buy } = await searchParams;
   const user = await getCurrentUser();
   const [s, addresses] = await Promise.all([
     getSettings(),
@@ -20,6 +21,7 @@ export default async function CheckoutPage() {
       <CheckoutView
         user={{ name: user?.name ?? "", email: user?.email ?? "", phone: user?.phone ?? null }}
         guest={!user}
+        buyNow={buy === "1"}
         signInHref="/login?next=/checkout"
         googleHref={googleEnabled() ? "/api/auth/google?next=%2Fcheckout" : null}
         addresses={addresses.map((a) => ({ id: a.id, name: a.name, phone: a.phone, line1: a.line1, line2: a.line2, landmark: a.landmark, city: a.city, state: a.state, pincode: a.pincode, isDefault: a.isDefault }))}

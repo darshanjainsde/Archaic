@@ -32,16 +32,23 @@ type CashfreeFactory = (opts: { mode: string }) => { checkout: (o: { paymentSess
  *  - "dismissed" when the customer closed the window
  * Throws on errors.
  */
-export async function launchPayment(launch: GatewayLaunch, theme: string): Promise<"paid" | "redirect" | "dismissed"> {
+export async function launchPayment(launch: GatewayLaunch, theme: string): Promise<"paid" | "redirect" | "dismissed" | "checked"> {
   if (launch.kind === "cod") return "paid";
   if (launch.kind === "cashfree") {
     await loadScript("https://sdk.cashfree.com/js/v3/cashfree.js");
     const factory = (window as unknown as { Cashfree?: CashfreeFactory }).Cashfree;
     if (!factory) throw new Error("Cashfree could not be loaded");
     const cf = factory({ mode: launch.mode });
-    const res = await cf.checkout({ paymentSessionId: launch.paymentSessionId, redirectTarget: "_self" });
-    if (res?.error) throw new Error(res.error.message || "Payment could not be started");
-    return "redirect";
+    // Pay in a popup on this page (no trip away and back). If the popup can't open, fall back to Cashfree's page.
+    try {
+      const res = await cf.checkout({ paymentSessionId: launch.paymentSessionId, redirectTarget: "_modal" });
+      if (res && "redirect" in (res as object)) return "redirect";
+      return "checked"; // closed, paid or failed: the server verifies with Cashfree on the return page
+    } catch {
+      const res = await cf.checkout({ paymentSessionId: launch.paymentSessionId, redirectTarget: "_self" });
+      if (res?.error) throw new Error(res.error.message || "Payment could not be started");
+      return "redirect";
+    }
   }
   await loadScript("https://checkout.razorpay.com/v1/checkout.js");
   const Rzp = (window as unknown as { Razorpay?: RazorpayCtor }).Razorpay;

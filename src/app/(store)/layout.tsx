@@ -9,6 +9,7 @@ import { Footer } from "@/components/store/footer";
 import { InstallPrompt } from "@/components/pwa/install-prompt";
 import { getCategoryTree } from "@/lib/categories";
 import { Scene } from "@/components/store/scene";
+import { QuietRoutes } from "@/components/store/quiet-routes";
 
 export default async function StoreLayout({ children }: { children: React.ReactNode }) {
   const [settings, user, pages, tree] = await Promise.all([
@@ -24,6 +25,7 @@ export default async function StoreLayout({ children }: { children: React.ReactN
   return (
     <div className="mobile-tabbar-space flex min-h-dvh flex-col">
       <a href="#main" className="sr-only focus:not-sr-only focus:fixed focus:left-3 focus:top-3 focus:z-[70] focus:bg-paper focus:p-3 focus:text-paper-ink">Skip to content</a>
+      <QuietRoutes />
       {settings.theme.motion === "honeycomb" && <Scene />}
       {settings.announcement.enabled && <AnnouncementBar messages={settings.announcement.messages} href={settings.announcement.href || undefined} />}
       <Header storeName={settings.store.name} logoUrl={settings.store.logoUrl} nav={settings.nav} tree={menuTree} signedIn={Boolean(user)} isAdmin={user?.role === "ADMIN"} />

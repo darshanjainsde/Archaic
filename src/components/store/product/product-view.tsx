@@ -7,7 +7,7 @@ import { Img } from "@/components/ui/img";
 import { Stars } from "@/components/ui/stars";
 import { WishlistButton } from "@/components/store/wishlist-button";
 import { BAG_ADDED_EVENT } from "@/components/store/bag-events";
-import { cart } from "@/lib/cart-store";
+import { cart, express } from "@/lib/cart-store";
 import { lineKey, resolveLine } from "@/lib/pricing";
 import { discountPercent, formatMoney } from "@/lib/money";
 import type { OptionGroup, Personalization, Selection } from "@/lib/types";
@@ -117,6 +117,12 @@ export function ProductView({ p, wishlisted, deliveryText, children }: { p: Prod
       return;
     }
     const key = lineKey(p.id, selections, res.personalization);
+    if (buyNow) {
+      // Buy now checks out only this product, with the chosen options and quantity. The bag is left as it is.
+      express.set({ key, productId: p.id, slug: p.slug, name: p.name, image: res.optionImage ?? p.images[0]?.url ?? null, unitPrice: unit, quantity: Math.min(qty, maxQty || qty), selections, selectionLabels: res.snapshot, personalization: res.personalization ?? undefined });
+      router.push("/checkout?buy=1");
+      return;
+    }
     const existing = cart.get().lines.find((l) => l.key === key)?.quantity ?? 0;
     if (existing >= maxQty) {
       toast(`You already have the maximum (${maxQty}) of this in your bag`, { action: { label: "View bag", onClick: () => router.push("/cart") } });

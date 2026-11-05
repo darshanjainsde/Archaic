@@ -24,7 +24,7 @@ export default async function OrderThanks({ params }: { params: Promise<{ number
   const a = order.shippingAddress as ShippingAddress;
   return (
     <div className="container-x py-12 md:py-20">
-      <ClearCart />
+      <ClearCart number={order.number} />
       <div className="grid gap-10 lg:grid-cols-[1fr_420px]">
         <div className="space-y-6">
           <h1 className="text-5xl md:text-7xl">Thank you, {(user && !guest ? user.name : String((order.shippingAddress as { name?: string } | null)?.name ?? "")).split(" ")[0]}</h1>

@@ -1,4 +1,4 @@
-import { cart } from "./cart-store";
+import { cart, express } from "./cart-store";
 import { lineKey, resolveLine } from "./pricing";
 import type { OptionGroup, Personalization, Selection } from "./types";
 import { BAG_ADDED_EVENT } from "@/components/store/bag-events";
@@ -49,4 +49,14 @@ export function addWithDefaults(p: QuickAddProduct, maxQty = 10): "added" | "max
   );
   window.dispatchEvent(new Event(BAG_ADDED_EVENT));
   return "added";
+}
+
+/** Buy now with default options: put ONLY this product in the express checkout (the bag is left alone). */
+export function buyNowWithDefaults(p: QuickAddProduct): "ok" | "invalid" {
+  const sel = defaultSelections(p.options);
+  const selections: Selection[] = Object.entries(sel).map(([groupId, valueId]) => ({ groupId, valueId }));
+  const res = resolveLine(p.price, p.options, selections, p.personalization, "");
+  if (!res.ok) return "invalid";
+  express.set({ key: lineKey(p.id, selections, res.personalization), productId: p.id, slug: p.slug, name: p.name, image: res.optionImage ?? p.image, unitPrice: res.unitPrice, quantity: 1, selections, selectionLabels: res.snapshot, personalization: res.personalization ?? undefined });
+  return "ok";
 }
