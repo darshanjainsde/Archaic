@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Minus, Plus, Truck } from "lucide-react";
+import { Check, ChevronLeft, ChevronRight, Minus, Plus, Truck, X } from "lucide-react";
 import { toast } from "sonner";
 import { Img } from "@/components/ui/img";
 import { Stars } from "@/components/ui/stars";
@@ -52,6 +52,21 @@ export function ProductView({ p, wishlisted, deliveryText, children }: { p: Prod
   const [text, setText] = useState("");
   const [qty, setQty] = useState(1);
   const [active, setActive] = useState(0);
+  const [zoom, setZoom] = useState<number | null>(null);
+  useEffect(() => {
+    if (zoom === null) return;
+    const n = gallery.length;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setZoom(null);
+      if (e.key === "ArrowRight") setZoom((z) => (z === null ? z : (z + 1) % n));
+      if (e.key === "ArrowLeft") setZoom((z) => (z === null ? z : (z - 1 + n) % n));
+    };
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => { window.removeEventListener("keydown", onKey); document.body.style.overflow = prev; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [zoom]);
   const [showError, setShowError] = useState(false);
   const [barVisible, setBarVisible] = useState(false);
   const [added, setAdded] = useState(0);
@@ -149,41 +164,54 @@ export function ProductView({ p, wishlisted, deliveryText, children }: { p: Prod
 
   return (
     <div className="grid gap-8 lg:grid-cols-12 lg:gap-12">
-      {/* Gallery */}
-      <div className="lg:col-span-7">
-        <div className="relative -mx-4 md:mx-0">
-          <div ref={railRef} onScroll={onRailScroll} className="snap-row no-scrollbar auto-cols-[100%] bg-surface md:overflow-hidden" style={{ borderRadius: "var(--radius)" }} aria-label="Product images" role="region">
-            {gallery.map((g, i) => (
-              <div key={g.url + i} className="relative aspect-[4/5]" data-lit={lit && i === active ? "" : undefined}>
-                <Img src={g.url} alt={g.alt || `${p.name}, image ${i + 1}`} fill priority={i === 0} sizes="(min-width:1024px) 55vw, 100vw" className="lit-img object-cover" />
-                {i === active && (
-                  <>
-                    <span className="lit-layer" aria-hidden />
-                    <svg className="lit-flame" viewBox="0 0 26 46" aria-hidden><path d="M13 2 c-9 13 4 17 0 24 c-4-7 9-11 0-24z" fill="#ffb347" /><path d="M13 12 c-4 7 2 9 0 13 c-2-4 4-6 0-13z" fill="#fff3c4" /></svg>
-                  </>
-                )}
+      {/* Gallery: thumbnails on the left (desktop) or below (phone); the frame is square, capped to the screen
+          height, and shows the whole product (contain), never a crop. Tap to view full screen. */}
+      <div className="min-w-0 lg:col-span-6">
+        <div className="lg:sticky lg:top-24 md:grid md:grid-cols-[76px_minmax(0,1fr)] md:items-start md:gap-4 lg:gap-5">
+          <div className="relative -mx-4 min-w-0 md:order-2 md:mx-0">
+            <div ref={railRef} onScroll={onRailScroll} className="pv-frame snap-row no-scrollbar auto-cols-[100%] bg-surface md:overflow-hidden" style={{ borderRadius: "var(--radius)" }} aria-label="Product images" role="region">
+              {gallery.map((g, i) => (
+                <button key={g.url + i} type="button" onClick={() => setZoom(i)} aria-label={`View image ${i + 1} full screen`} className="relative block aspect-[4/5] w-full cursor-zoom-in" data-lit={lit && i === active ? "" : undefined}>
+                  <Img src={g.url} alt={g.alt || `${p.name}, image ${i + 1}`} fill priority={i === 0} sizes="(min-width:1024px) 680px, 100vw" className="lit-img object-contain" />
+                  {i === active && <span className="lit-layer" aria-hidden />}
+                </button>
+              ))}
+            </div>
+            {gallery.length > 1 && (
+              <div className="absolute inset-x-0 bottom-3 flex justify-center gap-2 md:hidden" aria-hidden>
+                {gallery.map((_, i) => <span key={i} className={cn("h-2 w-2 rounded-full transition-colors", i === active ? "bg-ink" : "bg-ink/35")} />)}
               </div>
-            ))}
+            )}
           </div>
           {gallery.length > 1 && (
-            <div className="absolute inset-x-0 bottom-3 flex justify-center gap-2 md:hidden" aria-hidden>
-              {gallery.map((_, i) => <span key={i} className={cn("h-2 w-2 rounded-full transition-colors", i === active ? "bg-ink" : "bg-ink/35")} />)}
+            <div className="pv-thumbs no-scrollbar mt-3 hidden gap-3 md:order-1 md:mt-0 md:flex md:flex-col" aria-label="Choose an image">
+              {gallery.map((g, i) => (
+                <button key={g.url + i} type="button" onClick={() => goTo(i)} aria-label={`Show image ${i + 1}`} aria-current={i === active} className={cn("relative aspect-square w-[76px] shrink-0 overflow-hidden bg-surface transition-opacity", i === active ? "outline-2 outline-offset-2 outline-ink" : "opacity-60 hover:opacity-100")} style={{ borderRadius: "calc(var(--radius) * .6)", outlineStyle: i === active ? "solid" : undefined }}>
+                  <Img src={g.url} alt="" fill sizes="76px" className="object-cover" />
+                </button>
+              ))}
             </div>
           )}
         </div>
-        {gallery.length > 1 && (
-          <div className="mt-3 hidden grid-cols-6 gap-2 md:grid">
-            {gallery.map((g, i) => (
-              <button key={g.url + i} type="button" onClick={() => goTo(i)} aria-label={`Show image ${i + 1}`} aria-current={i === active} className={cn("relative aspect-square overflow-hidden bg-surface transition-opacity", i === active ? "outline-2 outline-offset-2 outline-ink" : "opacity-60 hover:opacity-100")} style={{ borderRadius: "var(--radius)", outlineStyle: i === active ? "solid" : undefined }}>
-                <Img src={g.url} alt="" fill sizes="10vw" className="object-cover" />
-              </button>
-            ))}
-          </div>
-        )}
       </div>
 
+      {zoom !== null && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-ink/90 p-4" role="dialog" aria-modal="true" aria-label={`${p.name}, image ${zoom + 1} of ${gallery.length}`} onClick={() => setZoom(null)}>
+          <div className="relative h-full max-h-[min(92svh,1100px)] w-full max-w-[min(92vw,1100px)]">
+            <Img src={gallery[zoom].url} alt={gallery[zoom].alt || p.name} fill sizes="92vw" className="object-contain" />
+          </div>
+          <button type="button" autoFocus onClick={() => setZoom(null)} className="absolute right-4 top-4 grid h-11 w-11 place-items-center rounded-full bg-paper text-paper-ink" aria-label="Close"><X className="h-5 w-5" /></button>
+          {gallery.length > 1 && (
+            <>
+              <button type="button" onClick={(e) => { e.stopPropagation(); setZoom((zoom - 1 + gallery.length) % gallery.length); }} className="absolute left-4 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-paper text-paper-ink" aria-label="Previous image"><ChevronLeft className="h-5 w-5" /></button>
+              <button type="button" onClick={(e) => { e.stopPropagation(); setZoom((zoom + 1) % gallery.length); }} className="absolute right-4 top-1/2 grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full bg-paper text-paper-ink" aria-label="Next image"><ChevronRight className="h-5 w-5" /></button>
+            </>
+          )}
+        </div>
+      )}
+
       {/* Buy panel */}
-      <div className="lg:col-span-5">
+      <div className="lg:col-span-6">
         <div className="lg:sticky lg:top-24">
           {p.isDraft && <p className="mb-3 bg-sale/20 p-3 text-[14px] font-semibold">Draft preview — only admins can see this page.</p>}
           {p.category && <a href={`/shop?category=${p.category.slug}`} className="text-[15px] text-muted hover:underline underline-offset-4">{p.category.name}</a>}
