@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { productsForSource, wishlistIds } from "@/lib/catalog";
 import { getCategoryTree } from "@/lib/categories";
 import { Hero, type HeroSlide } from "@/components/store/home/hero";
+import { BoxEntry } from "@/components/store/home/box-entry";
 import { HeroPour, type HeroProduct } from "@/components/store/home/hero-pour";
 import {
   CategoryTiles, MembershipSection, NewsletterSection, OccasionsSection, ProductsSection, PromoBand, ReviewsSection, RichTextSection, StorySection, UspStrip, type OccasionTile, MakeSection } from "@/components/store/home/sections";
@@ -80,6 +81,12 @@ export default async function HomePage() {
               : [{ title: s.heading || settings.store.name, text: s.text, ctaLabel: s.ctaLabel, ctaHref: s.ctaHref, image: s.image ?? "/images/products/oud-amber-amber.svg" }];
             return <div key={s.id}><Hero slides={slides} storeName={settings.store.name} tagline={settings.store.tagline} /></div>;
           }
+          case "boxes":
+            return settings.boxes.enabled ? (
+              <BoxEntry key={s.id} heading={s.heading} text={s.text} ctaLabel={s.ctaLabel} packDays={settings.boxes.packDays} lid="For you"
+                sizes={settings.boxes.sizes.filter((z) => z.enabled).map((z) => ({ label: `${z.rows} × ${z.cols}` }))}
+                from={settings.boxes.sizes.filter((z) => z.enabled).reduce<number | null>((m, z) => (m === null || z.price < m ? z.price : m), null)} />
+            ) : null;
           case "make":
             return <MakeSection key={s.id} heading={s.heading} image={s.image ?? null} labelName={s.labelName} labelLine={s.labelLine} ctaLabel={s.ctaLabel} ctaHref={s.ctaHref || (heroProduct ? `/product/${heroProduct.slug}` : "/shop")} product={heroProduct} />;
           case "usp":

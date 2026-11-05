@@ -64,6 +64,12 @@ export const cart = {
     const q = Math.max(0, Math.min(maxQty, Math.trunc(qty)));
     set({ ...state, lines: q === 0 ? state.lines.filter((l) => l.key !== key) : state.lines.map((l) => (l.key === key ? { ...l, quantity: q } : l)) });
   },
+  /** Swap a line for an edited one in place (custom boxes), keeping its position in the bag. */
+  replace(key: string, line: CartLine) {
+    load();
+    const has = state.lines.some((l) => l.key === key);
+    set({ ...state, lines: has ? state.lines.map((l) => (l.key === key ? line : l)) : [...state.lines, line] });
+  },
   remove(key: string) { load(); set({ ...state, lines: state.lines.filter((l) => l.key !== key) }); },
   setCoupon(code: string | null) { load(); set({ ...state, couponCode: code ? code.trim().toUpperCase() : null }); },
   setGift(giftWrap: boolean, giftMessage?: string) { load(); set({ ...state, giftWrap, giftMessage: giftMessage ?? state.giftMessage }); },

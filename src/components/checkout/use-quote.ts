@@ -10,7 +10,7 @@ export function useQuote(lines: CartLine[], couponCode: string | null, giftWrap:
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const seq = useRef(0);
-  const sig = JSON.stringify([lines.map((l) => [l.productId, l.quantity, l.selections, l.personalization ?? null]), couponCode, giftWrap, paymentMethod]);
+  const sig = JSON.stringify([lines.map((l) => [l.productId, l.quantity, l.selections, l.personalization ?? null, l.box ?? null]), couponCode, giftWrap, paymentMethod]);
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
@@ -20,7 +20,7 @@ export function useQuote(lines: CartLine[], couponCode: string | null, giftWrap:
     const t = setTimeout(async () => {
       try {
         const q = await quoteAction({
-          lines: lines.map((l) => ({ productId: l.productId, quantity: l.quantity, selections: l.selections, personalization: l.personalization ?? null })),
+          lines: lines.map((l) => ({ productId: l.productId, quantity: l.quantity, selections: l.selections, personalization: l.personalization ?? null, box: l.box ?? null })),
           couponCode,
           giftWrap,
           paymentMethod,

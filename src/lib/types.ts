@@ -51,6 +51,8 @@ export type CartLine = {
   selections: Selection[];
   selectionLabels: SelectionSnapshot[];
   personalization?: string;
+  /** Build-your-own box: the customer's design. productId is "box" for these lines. */
+  box?: import("./box/schema").BoxConfig;
 };
 
 export type ShippingAddress = {

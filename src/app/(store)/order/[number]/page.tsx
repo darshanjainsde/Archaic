@@ -9,6 +9,7 @@ import { formatMoney } from "@/lib/money";
 import { formatDate } from "@/lib/utils";
 import { Img } from "@/components/ui/img";
 import { ClearCart } from "@/components/checkout/clear-cart";
+import { OrderBoxes } from "@/components/box/order-boxes";
 import type { SelectionSnapshot, ShippingAddress } from "@/lib/types";
 
 export const metadata: Metadata = { title: "Thank you", robots: { index: false } };
@@ -48,13 +49,14 @@ export default async function OrderThanks({ params }: { params: Promise<{ number
               Want every order in one place? <Link href={`/register?next=${encodeURIComponent("/account")}`} className="font-semibold underline">Create an account</Link> or <Link href="/login?next=/account" className="font-semibold underline">sign in</Link> with <b>{order.email}</b>, and this order will be there once you confirm that email.
             </p>
           )}
+          <OrderBoxes number={order.number} status={order.status} items={order.items} ownAddress={s.boxes.ownGift.address} />
         </div>
         <aside className="bg-paper p-6 text-paper-ink" style={{ borderRadius: "var(--radius)" }}>
           <h2 className="mb-4 text-2xl">Order summary</h2>
           <ul className="space-y-3">
             {order.items.map((i) => (
               <li key={i.id} className="flex gap-3 text-[15px]">
-                <div className="relative h-16 w-14 shrink-0 overflow-hidden"><Img src={i.image} alt="" fill sizes="56px" className="object-cover" /></div>
+                <div className="relative h-16 w-14 shrink-0 overflow-hidden"><Img src={i.image} alt="" fill sizes="56px" className={i.box ? "object-contain" : "object-cover"} /></div>
                 <div className="flex-1"><b>{i.name} × {i.quantity}</b><div className="opacity-80">{(i.selections as SelectionSnapshot[]).map((x) => x.value).join(" · ")}</div></div>
                 <span className="tabular-nums">{formatMoney(i.lineTotal)}</span>
               </li>

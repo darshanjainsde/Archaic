@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { boxSettingsSchema, DEFAULT_BOXES } from "./box/schema";
 import { FONT_KEYS } from "./fonts-list";
 
 /** Store-wide configuration edited from Admin > Appearance / Settings. Pure module: safe on client & server. */
@@ -30,7 +31,8 @@ export const themeSchema = z.object({
 });
 export type ThemeSettings = z.infer<typeof themeSchema>;
 
-export const HOME_LAYOUT_VERSION = 2;
+export const HOME_LAYOUT_VERSION = 3;
+const BOXES_SECTION = { id: "boxes", type: "boxes" as const, enabled: true, heading: "A box no one else could send.", text: "Pick a size, dress it by hand, fill every compartment with what they love and write the card in your own words. We pack and seal it for you.", ctaLabel: "Start your box" };
 
 const sectionBase = { id: z.string().min(1), enabled: z.boolean().default(true) };
 
@@ -61,6 +63,8 @@ export const homeSectionSchema = z.discriminatedUnion("type", [
     /** Empty = the hero product's page */
     ctaHref: z.string().default(""),
   }),
+  /** Build-your-own box: the folding-box animation and a button to the builder */
+  z.object({ ...sectionBase, type: z.literal("boxes"), heading: z.string().default("A box no one else could send."), text: z.string().default(""), ctaLabel: z.string().default("Start your box") }),
   z.object({ ...sectionBase, type: z.literal("usp"), items: z.array(z.object({ title: z.string(), text: z.string() })).max(6) }),
   z.object({ ...sectionBase, type: z.literal("categories"), heading: z.string().default("Shop by category"), text: z.string().default("") }),
   z.object({
@@ -127,6 +131,8 @@ export const settingsSchema = z.object({
   nav: z.array(linkSchema).default([]),
   /** version 2 = the approved layout (Nov 2026). Stored settings below 2 are upgraded once in parseSettings. */
   home: z.object({ version: z.number().int().default(1), sections: z.array(homeSectionSchema) }),
+  /** Build-your-own gift box (Admin → Custom boxes) */
+  boxes: boxSettingsSchema.default(DEFAULT_BOXES),
   footer: z.object({ about: z.string().default(""), links: z.array(linkSchema).default([]) }),
   commerce: z.object({
     freeShippingThreshold: z.number().int().min(0), // paise; 0 = always free
@@ -261,6 +267,7 @@ export const DEFAULT_SETTINGS: StoreSettings = {
         { title: "Across India", text: "Dispatched in 2 days, delivered in 3–7." },
       ] },
       { id: "occasions", type: "occasions", enabled: true, heading: "Gifts for the occasion", text: "Boxed, wrapped and ready to give.", categorySlug: "gift-sets" },
+      BOXES_SECTION,
       { id: "bestsellers", type: "products", enabled: true, heading: "Bestsellers", text: "", source: "bestsellers", categorySlug: null, limit: 4, layout: "grid" },
       { id: "make", type: "make", enabled: true, heading: "A candle no one else has.", image: null, labelName: "For Aanya", labelLine: "light it on the bad days", ctaLabel: "Start with a jar", ctaHref: "" },
       { id: "story", type: "story", enabled: true, heading: "Poured at a kitchen table, still poured by hand.", text: "Archaic began with a double boiler and a jar of soy flakes. We still pour every candle ourselves, blend our own fragrance oils, and write each label for the person who will light it.", image: null, ctaLabel: "Read our story", ctaHref: "/pages/about" },
@@ -271,6 +278,7 @@ export const DEFAULT_SETTINGS: StoreSettings = {
       { id: "news", type: "newsletter", enabled: false, heading: "Letters from the workshop", text: "New scents, restocks and the occasional quiet offer. No more than twice a month." },
     ],
   },
+  boxes: DEFAULT_BOXES,
   footer: {
     about: "Archaic Candles is a small workshop pouring soy wax candles and putting together gifts for the people you love.",
     links: [
@@ -326,8 +334,17 @@ export const DEFAULT_SETTINGS: StoreSettings = {
  * homepage in admin stores version 2, so this never runs again for that store.
  */
 function upgradeHome(r: Record<string, unknown>, base: StoreSettings): Record<string, unknown> {
-  const home = r.home as { version?: number; sections?: { type?: string; productSlug?: string; heading?: string; text?: string }[] } | undefined;
+  const home = r.home as { version?: number; sections?: { type?: string; id?: string; productSlug?: string; heading?: string; text?: string }[] } | undefined;
   if (!home || (home.version ?? 1) >= HOME_LAYOUT_VERSION) return r;
+  // v2 → v3: keep the owner's layout, add the build-your-own-box section after the gift occasions
+  if (home.version === 2 && Array.isArray(home.sections)) {
+    const sections = [...home.sections];
+    if (!sections.some((x) => x?.type === "boxes")) {
+      const at = sections.findIndex((x) => x?.type === "occasions");
+      sections.splice(at >= 0 ? at + 1 : Math.min(2, sections.length), 0, { ...BOXES_SECTION, id: sections.some((x) => x?.id === "boxes") ? "boxes-2" : "boxes" });
+    }
+    return { ...r, home: { version: HOME_LAYOUT_VERSION, sections } };
+  }
   const sections = structuredClone(base.home.sections);
   const oldHero = home.sections?.find((x) => x?.type === "hero");
   const hero = sections.find((x) => x.type === "hero");

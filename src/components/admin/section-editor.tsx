@@ -18,6 +18,7 @@ export const SECTION_TYPES: { type: HomeSectionType; label: string; help: string
   { type: "products", label: "Product shelf", help: "Featured, newest, bestsellers, on sale, or one category." },
   { type: "promo", label: "Promo banner", help: "Shows active Promo banners from Banners & ads." },
   { type: "story", label: "Story", help: "A short letter about the brand with a photo and a button (usually to Our story)." },
+  { type: "boxes", label: "Build your own box", help: "The folding gift-box animation with a button to the box builder. Hidden while custom boxes are switched off." },
   { type: "make", label: "Make it yours", help: "“A candle no one else has.”: the hero product's scents and wax colours as steps, a photo and a label preview." },
   { type: "occasions", label: "Gift occasions", help: "Photo tiles for the sub-categories of one category (Diwali, Wedding, Corporate…)." },
   { type: "membership", label: "Membership", help: "Shows your membership tiers and perks." },
@@ -30,6 +31,7 @@ export function newSection(type: HomeSectionType): HomeSection {
   const id = `${type}-${uid().slice(0, 6)}`;
   switch (type) {
     case "hero": return { id, type, enabled: true, heading: "Archaic Candles", text: "", ctaLabel: "Shop now", ctaHref: "/shop", image: null, productSlug: "", buyNow: true, pour: true, secondaryLabel: "", secondaryHref: "", proof: "" };
+    case "boxes": return { id, type, enabled: true, heading: "A box no one else could send.", text: "", ctaLabel: "Start your box" };
     case "make": return { id, type, enabled: true, heading: "A candle no one else has.", image: null, labelName: "For Aanya", labelLine: "light it on the bad days", ctaLabel: "Start with a jar", ctaHref: "" };
     case "occasions": return { id, type, enabled: true, heading: "Gifts for the occasion", text: "Boxed, wrapped and ready to give.", categorySlug: "gift-sets" };
     case "usp": return { id, type, enabled: true, items: [{ title: "Hand-poured", text: "Small batches" }] };
@@ -101,6 +103,15 @@ function Fields({ s, set, categories, products }: { s: HomeSection; set: (patch:
           <div className="border-t border-black/10 pt-6">
             <ImageField label="Hero photo (optional)" value={s.image} onChange={(v) => set({ image: v })} hint="Shown in the hero when no Hero banners are active. Wide photos work best, about 1600 × 1000 px." />
           </div>
+        </div>
+      );
+    case "boxes":
+      return (
+        <div className={GRID}>
+          <div className="@md:col-span-2"><Text label="Heading" value={s.heading} onChange={(v) => set({ heading: v })} placeholder="e.g. A box no one else could send." /></div>
+          <div className="@md:col-span-2"><Text area label="Text" value={s.text} onChange={(v) => set({ text: v })} hint="One or two sentences. Sizes, prices and packing time come from Custom boxes." /></div>
+          <Text label="Button text" value={s.ctaLabel} onChange={(v) => set({ ctaLabel: v })} placeholder="e.g. Start your box" />
+          <p className="hint @md:col-span-2">Set up sizes, decorations and what can go inside in <a className="underline underline-offset-4" href="/admin/custom-boxes">Custom boxes</a>.</p>
         </div>
       );
     case "make":

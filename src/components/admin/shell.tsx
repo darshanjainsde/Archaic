@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { LayoutDashboard, ShoppingBag, Package, FolderTree, Users, Ticket, Megaphone, Palette, FileText, Star, Settings, ExternalLink, Menu, X, LogOut } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, Package, FolderTree, Users, Ticket, Megaphone, Palette, FileText, Star, Settings, ExternalLink, Menu, X, LogOut, Gift } from "lucide-react";
 import { adminSignOut } from "@/actions/admin/common";
 import { cn } from "@/lib/utils";
 import { ConfirmProvider } from "./confirm";
@@ -12,6 +12,7 @@ const NAV = [
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag, badge: true },
   { href: "/admin/products", label: "Products", icon: Package },
   { href: "/admin/categories", label: "Categories", icon: FolderTree },
+  { href: "/admin/custom-boxes", label: "Custom boxes", icon: Gift },
   { href: "/admin/customers", label: "Customers", icon: Users },
   { href: "/admin/coupons", label: "Coupons", icon: Ticket },
   { href: "/admin/banners", label: "Banners & ads", icon: Megaphone },

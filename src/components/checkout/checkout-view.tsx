@@ -134,7 +134,7 @@ export function CheckoutView(p: {
     startTransition(async () => {
       try {
         const res = await placeOrder({
-          lines: lines.map((l) => ({ productId: l.productId, quantity: l.quantity, selections: l.selections, personalization: l.personalization ?? null })),
+          lines: lines.map((l) => ({ productId: l.productId, quantity: l.quantity, selections: l.selections, personalization: l.personalization ?? null, box: l.box ?? null })),
           couponCode: c.couponCode,
           giftWrap: c.giftWrap,
           isGift: c.giftWrap,
@@ -298,7 +298,7 @@ export function CheckoutView(p: {
             const q = quote?.lines[i];
             return (
               <li key={l.key} className="flex gap-3">
-                <div className="relative h-16 w-14 shrink-0 overflow-hidden bg-surface"><Img src={q?.image ?? l.image} alt="" fill sizes="56px" className="object-cover" /></div>
+                <div className="relative h-16 w-14 shrink-0 overflow-hidden bg-surface"><Img src={q?.image || l.image} alt="" fill sizes="56px" className={l.box ? "object-contain" : "object-cover"} /></div>
                 <div className="min-w-0 flex-1 text-[15px]">
                   <p className="font-semibold leading-snug">{l.name} × {l.quantity}</p>
                   {l.selectionLabels.length > 0 && <p className="text-muted">{l.selectionLabels.map((s) => s.value).join(" · ")}</p>}

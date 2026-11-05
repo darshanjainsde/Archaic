@@ -12,13 +12,22 @@ import { rateLimit } from "@/lib/rate-limit";
 import { clientIp } from "@/lib/request";
 import { canAccessOrder, rememberGuestOrder } from "@/lib/guest-orders";
 import type { PaymentMethod } from "@prisma/client";
+import { boxConfigSchema } from "@/lib/box/schema";
+import { BOX_PRODUCT_ID } from "@/lib/orders";
 
 const lineSchema = z.object({
   productId: z.string().min(1).max(64),
   quantity: z.number().int().min(1).max(99),
   selections: z.array(z.object({ groupId: z.string().max(64), valueId: z.string().max(64) })).max(12).default([]),
   personalization: z.string().max(300).nullish(),
+  /** Build-your-own box design (validated again in quoteCart) */
+  box: boxConfigSchema.nullish(),
 });
+/** Unguessable id for a box's voice-note page (the QR on the card). */
+function voiceToken() {
+  return crypto.randomUUID().replace(/-/g, "").slice(0, 20);
+}
+
 const methodSchema = z.enum(["RAZORPAY", "CASHFREE", "COD"]);
 
 export type GatewayLaunch =
@@ -163,7 +172,7 @@ export async function placeOrder(raw: unknown): Promise<PlaceOrderResult> {
         shippingAddress: address as object,
         estimatedDelivery: new Date(Date.now() + (s.commerce.dispatchDays + s.commerce.deliveryDaysMax) * 86400000),
         items: {
-          create: [...valid, ...quote.giftLines].map((l) => ({ productId: l.productId, name: l.name, slug: l.slug, image: l.image, unitPrice: l.unitPrice, quantity: l.quantity, selections: l.selections as object, personalization: l.personalization, lineTotal: l.lineTotal })),
+          create: [...valid, ...quote.giftLines].map((l) => ({ productId: l.productId === BOX_PRODUCT_ID ? null : l.productId, name: l.name, slug: l.slug, image: l.image, unitPrice: l.unitPrice, quantity: l.quantity, selections: l.selections as object, personalization: l.personalization, lineTotal: l.lineTotal, ...(l.box ? { box: { ...l.box, voice: l.box.card.voice ? { token: voiceToken(), url: null, uploadedAt: null } : null } as object } : {}) })),
         },
         events: { create: { status: "PENDING_PAYMENT", note: input.paymentMethod === "COD" ? "Order received." : "Order created. Waiting for payment.", isPublic: input.paymentMethod !== "COD" } },
       },

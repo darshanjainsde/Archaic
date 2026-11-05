@@ -17,6 +17,7 @@ import { PriceBreakdown } from "@/components/account/price-breakdown";
 import { OrderActions } from "@/components/account/order-actions";
 import { PayNowButton } from "@/components/checkout/pay-now-button";
 import type { SelectionSnapshot, ShippingAddress } from "@/lib/types";
+import { OrderBoxes } from "@/components/box/order-boxes";
 
 export async function generateMetadata({ params }: { params: Promise<{ number: string }> }): Promise<Metadata> {
   const { number } = await params;
@@ -74,7 +75,7 @@ export default async function OrderDetail({ params }: { params: Promise<{ number
           <ul className="space-y-3">
             {order.items.map((i) => (
               <li key={i.id} className="grid grid-cols-[72px_1fr_auto] gap-4 bg-surface p-4" style={{ borderRadius: "var(--radius)" }}>
-                <div className="relative aspect-[4/5] overflow-hidden bg-bg"><Img src={i.image} alt={i.name} fill sizes="72px" className="object-cover" /></div>
+                <div className="relative aspect-[4/5] overflow-hidden bg-bg"><Img src={i.image} alt={i.name} fill sizes="72px" className={i.box ? "object-contain p-1" : "object-cover"} /></div>
                 <div className="min-w-0 text-[16px]">
                   {i.slug ? <Link href={`/product/${i.slug}`} className="font-semibold hover:underline">{i.name}</Link> : <b>{i.name}</b>}
                   <p className="text-[15px] text-muted">{(i.selections as SelectionSnapshot[]).map((x) => `${x.group}: ${x.value}`).join(" · ")}</p>
@@ -85,6 +86,7 @@ export default async function OrderDetail({ params }: { params: Promise<{ number
               </li>
             ))}
           </ul>
+          <div className="mt-6"><OrderBoxes number={order.number} status={order.status} items={order.items} ownAddress={s.boxes.ownGift.address} /></div>
           {order.isGift && <p className="mt-4 text-[16px]"><b>Gift wrapped.</b>{order.giftMessage ? ` Card: “${order.giftMessage}”` : ""}</p>}
           <div className="mt-6">
             <OrderActions number={order.number} canCancel={CUSTOMER_CANCELLABLE.includes(order.status)} paid={order.paymentStatus === "PAID"} canReturn={canReturn} returnDays={s.commerce.returnDays} />

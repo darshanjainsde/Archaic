@@ -5,12 +5,19 @@ import { getSettings } from "./settings";
 import { parseOptions, parsePersonalization, resolveLine } from "./pricing";
 import { memberDiscountPct } from "./membership";
 import type { Selection, SelectionSnapshot } from "./types";
+import { boxConfigSchema, type BoxConfig } from "./box/schema";
+import { priceBox, boxSummary, type BoxCatalog, type BoxSnapshot } from "./box/core";
+import { loadBoxCatalog } from "./box/catalog";
+import { boxThumb } from "@/components/store/box/art";
 import type { StoreSettings } from "./settings-schema";
 import { sendEmail, emailLayout, escapeHtml } from "./email";
 import { formatMoney } from "./money";
 import { siteUrl } from "./utils";
 
-export type QuoteInputLine = { productId: string; quantity: number; selections: Selection[]; personalization?: string | null };
+export type QuoteInputLine = { productId: string; quantity: number; selections: Selection[]; personalization?: string | null; box?: BoxConfig | null };
+
+/** productId used by build-your-own box lines */
+export const BOX_PRODUCT_ID = "box";
 
 export type QuotedLine = {
   key: string;
@@ -25,6 +32,8 @@ export type QuotedLine = {
   personalization: string | null;
   error: string | null;
   maxQty: number;
+  /** Build-your-own box: the validated packing plan */
+  box?: BoxSnapshot | null;
 };
 
 export type Milestone = { kind: "shipping" | "gift"; label: string; threshold: number; reached: boolean };
@@ -93,7 +102,8 @@ export async function quoteCart(input: {
 }): Promise<Quote> {
   const s = input.settings ?? (await getSettings());
   const rawLines = (input.lines ?? []).slice(0, 50);
-  const ids = [...new Set(rawLines.map((l) => String(l.productId)))];
+  const ids = [...new Set(rawLines.filter((l) => !l.box).map((l) => String(l.productId)))];
+  let boxCat: BoxCatalog | null | undefined;
   const products = ids.length
     ? await db.product.findMany({ where: { id: { in: ids } }, include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } } })
     : [];
@@ -102,6 +112,11 @@ export async function quoteCart(input: {
   const lines: QuotedLine[] = [];
   const qtyByProduct = new Map<string, number>();
   for (const l of rawLines) {
+    if (l.box || l.productId === BOX_PRODUCT_ID) {
+      if (boxCat === undefined) boxCat = await loadBoxCatalog(s);
+      lines.push(quoteBoxLine(l, boxCat, lines.length));
+      continue;
+    }
     const p = map.get(String(l.productId));
     const qty = Math.max(1, Math.min(s.commerce.maxQtyPerLine, Math.trunc(Number(l.quantity) || 1)));
     if (!p || p.status !== "ACTIVE") {
@@ -129,6 +144,21 @@ export async function quoteCart(input: {
       error,
       maxQty,
     });
+  }
+
+  // shop products inside boxes share stock with the same products bought on their own
+  if (boxCat) {
+    const used = new Map(qtyByProduct);
+    for (const l of lines) {
+      if (!l.box || l.error) continue;
+      for (const it of l.box.items) if (it.productId) used.set(it.productId, (used.get(it.productId) ?? 0) + l.quantity);
+    }
+    const stockOf = new Map(boxCat.categories.flatMap((c) => c.items).filter((i) => i.product).map((i) => [i.product!.id, i.product!.stock]));
+    for (const l of lines) {
+      if (!l.box || l.error) continue;
+      const short = l.box.items.find((it) => it.productId && stockOf.get(it.productId) != null && (used.get(it.productId) ?? 0) > (stockOf.get(it.productId) ?? 0));
+      if (short) l.error = `Not enough ${short.name} in stock for this box`;
+    }
   }
 
   const valid = lines.filter((l) => !l.error);
@@ -185,9 +215,33 @@ export async function quoteCart(input: {
   return { lines, giftLines, milestones, next, progressValue: afterDiscount, subtotal, memberDiscount, memberTier, memberPct, discount, couponCode, couponError, shipping, giftWrap, codFee, total, freeShippingRemaining, hasErrors: lines.some((l) => l.error) };
 }
 
+function quoteBoxLine(l: QuoteInputLine, cat: BoxCatalog | null, index: number): QuotedLine {
+  const qty = Math.max(1, Math.min(cat?.maxPerOrder ?? 1, Math.trunc(Number(l.quantity) || 1)));
+  const base = { key: `box:${index}`, productId: BOX_PRODUCT_ID, name: "Your gift box", slug: "", image: null, quantity: qty, personalization: null, maxQty: cat?.maxPerOrder ?? 1 };
+  if (!cat) return { ...base, unitPrice: 0, lineTotal: 0, selections: [], error: "Custom boxes are not available right now", box: null };
+  const parsed = boxConfigSchema.safeParse(l.box);
+  if (!parsed.success) return { ...base, unitPrice: 0, lineTotal: 0, selections: [], error: "This box could not be read. Open it again in the builder.", box: null };
+  const r = priceBox(cat, parsed.data);
+  if (!r.ok) return { ...base, unitPrice: 0, lineTotal: 0, selections: [], error: r.error, box: null };
+  const snap = r.snapshot;
+  const image = boxThumb({ cols: snap.size.cols, rows: snap.size.rows, finish: snap.finish.color, filler: snap.filler.color, items: snap.items, own: snap.own });
+  return { ...base, image, name: `Gift box · ${snap.size.name} ${snap.size.rows} × ${snap.size.cols}`, unitPrice: snap.total, lineTotal: snap.total * qty, selections: boxSummary(snap), error: null, box: snap };
+}
+
 export async function nextOrderNumber(tx: Prisma.TransactionClient) {
   const c = await tx.orderCounter.upsert({ where: { id: "orders" }, create: { id: "orders", value: 10001 }, update: { value: { increment: 1 } } });
   return `AC${c.value}`;
+}
+
+/** Units per product in an order: ordinary lines plus the shop products packed inside custom boxes. */
+function stockUnits(items: { productId: string | null; quantity: number; box: Prisma.JsonValue | null }[]) {
+  const units = new Map<string, number>();
+  for (const it of items) {
+    if (it.productId) units.set(it.productId, (units.get(it.productId) ?? 0) + it.quantity);
+    const box = it.box as BoxSnapshot | null;
+    for (const b of box?.items ?? []) if (b.productId) units.set(b.productId, (units.get(b.productId) ?? 0) + it.quantity);
+  }
+  return units;
 }
 
 /** Decrement stock + bump coupon usage & sold counts exactly once per order. */
@@ -195,13 +249,12 @@ async function applyStock(tx: Prisma.TransactionClient, orderId: string) {
   const claimed = await tx.order.updateMany({ where: { id: orderId, stockApplied: false }, data: { stockApplied: true } });
   if (claimed.count === 0) return;
   const order = await tx.order.findUniqueOrThrow({ where: { id: orderId }, include: { items: true } });
-  for (const it of order.items) {
-    if (!it.productId) continue;
-    const p = await tx.product.findUnique({ where: { id: it.productId }, select: { trackInventory: true, stock: true } });
+  for (const [productId, quantity] of stockUnits(order.items)) {
+    const p = await tx.product.findUnique({ where: { id: productId }, select: { trackInventory: true, stock: true } });
     if (!p) continue;
     await tx.product.update({
-      where: { id: it.productId },
-      data: { soldCount: { increment: it.quantity }, ...(p.trackInventory ? { stock: Math.max(0, p.stock - it.quantity) } : {}) },
+      where: { id: productId },
+      data: { soldCount: { increment: quantity }, ...(p.trackInventory ? { stock: Math.max(0, p.stock - quantity) } : {}) },
     });
   }
   if (order.couponCode) await tx.coupon.updateMany({ where: { code: order.couponCode }, data: { usedCount: { increment: 1 } } });
@@ -211,13 +264,12 @@ async function restoreStock(tx: Prisma.TransactionClient, orderId: string) {
   const claimed = await tx.order.updateMany({ where: { id: orderId, stockApplied: true }, data: { stockApplied: false } });
   if (claimed.count === 0) return;
   const order = await tx.order.findUniqueOrThrow({ where: { id: orderId }, include: { items: true } });
-  for (const it of order.items) {
-    if (!it.productId) continue;
-    const p = await tx.product.findUnique({ where: { id: it.productId }, select: { trackInventory: true } });
+  for (const [productId, quantity] of stockUnits(order.items)) {
+    const p = await tx.product.findUnique({ where: { id: productId }, select: { trackInventory: true } });
     if (!p) continue;
     await tx.product.update({
-      where: { id: it.productId },
-      data: { soldCount: { decrement: it.quantity }, ...(p.trackInventory ? { stock: { increment: it.quantity } } : {}) },
+      where: { id: productId },
+      data: { soldCount: { decrement: quantity }, ...(p.trackInventory ? { stock: { increment: quantity } } : {}) },
     });
   }
   if (order.couponCode) await tx.coupon.updateMany({ where: { code: order.couponCode, usedCount: { gt: 0 } }, data: { usedCount: { decrement: 1 } } });
@@ -316,7 +368,7 @@ export async function sendOrderEmail(orderId: string, kind: "confirmed" | "statu
     await sendEmail({
       to: o.email,
       subject: `Order ${o.number} confirmed`,
-      html: emailLayout(`Thank you, ${o.user.name.split(" ")[0]}`, `<p>Your order <b>${o.number}</b> is confirmed. We will let you know when it ships.</p><table style="width:100%;border-collapse:collapse">${rows}<tr><td style="padding-top:12px"><b>Total</b></td><td style="text-align:right;padding-top:12px"><b>${formatMoney(o.total)}</b></td></tr></table><p><a href="${link}" style="color:#2b2216">Track your order</a></p>`),
+      html: emailLayout(`Thank you, ${o.user.name.split(" ")[0]}`, `<p>Your order <b>${o.number}</b> is confirmed. We will let you know when it ships.</p><table style="width:100%;border-collapse:collapse">${rows}<tr><td style="padding-top:12px"><b>Total</b></td><td style="text-align:right;padding-top:12px"><b>${formatMoney(o.total)}</b></td></tr></table>${o.items.some((i) => (i.box as BoxSnapshot | null)?.card.voice) ? `<p><b>Your voice note:</b> record it on your order page before we pack the box. The QR on the card will play it.</p>` : ""}${o.items.some((i) => (i.box as BoxSnapshot | null)?.own) ? `<p><b>Your own gift:</b> the order page explains how to get it to us. We start packing when it arrives.</p>` : ""}<p><a href="${link}" style="color:#2b2216">Track your order</a></p>`),
     });
   } else {
     const tracking = o.trackingNumber ? `<p>Courier: ${escapeHtml(o.courier ?? "")} · Tracking number: <b>${escapeHtml(o.trackingNumber)}</b>${o.trackingUrl ? ` · <a href="${escapeHtml(o.trackingUrl)}">Track shipment</a>` : ""}</p>` : "";

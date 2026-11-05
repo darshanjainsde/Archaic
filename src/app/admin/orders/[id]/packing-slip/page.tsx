@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import { BoxPlanView } from "@/components/box/plan-view";
+import type { BoxSnapshot } from "@/lib/box/core";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { formatMoney } from "@/lib/money";
@@ -55,6 +57,13 @@ export default async function PackingSlip({ params }: { params: Promise<{ id: st
           ))}
         </tbody>
       </table>
+      {o.items.filter((it) => it.box).map((it) => (
+        <section key={it.id} className="@container mt-6 break-inside-avoid border border-black p-4">
+          <h2 className="mb-3 text-lg font-semibold">Packing plan · {it.name}</h2>
+          <BoxPlanView box={it.box as unknown as BoxSnapshot} quantity={it.quantity} variant="print" />
+          <p className="mt-3 text-[12px]">Photograph the packed box and send it to the customer before sealing.</p>
+        </section>
+      ))}
       {o.isGift && <div className="mt-6 border border-black p-3"><b>Gift wrap</b>{o.giftMessage && <p className="mt-1 whitespace-pre-line text-[15px]">Card message: “{o.giftMessage}”</p>}<p className="mt-1 text-[12px]">Do not include the invoice or prices in this parcel.</p></div>}
       {o.notes && <p className="mt-4"><b>Customer note:</b> {o.notes}</p>}
     </div>

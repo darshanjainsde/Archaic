@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { usePathname } from "next/navigation";
 
 /** Pages where people read and pay. They get the quiet lattice and paper sheets (see store.css [data-quiet]). */
-const QUIET = [/^\/cart/, /^\/checkout/, /^\/account/, /^\/order\//, /^\/track/, /^\/login/, /^\/register/, /^\/forgot-password/, /^\/reset-password/, /^\/wishlist/, /^\/pages\//];
+const QUIET = [/^\/build-a-box/, /^\/cart/, /^\/checkout/, /^\/account/, /^\/order\//, /^\/track/, /^\/login/, /^\/register/, /^\/forgot-password/, /^\/reset-password/, /^\/wishlist/, /^\/pages\//];
 
 export function QuietRoutes() {
   const pathname = usePathname();

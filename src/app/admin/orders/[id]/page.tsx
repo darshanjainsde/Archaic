@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { BoxPlanView } from "@/components/box/plan-view";
+import type { BoxSnapshot } from "@/lib/box/core";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { formatMoney } from "@/lib/money";
@@ -64,13 +66,19 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
             <ul className="divide-y divide-black/5">
               {o.items.map((it) => (
                 <li key={it.id} className="flex gap-3 py-3 first:pt-0">
-                  <div className="relative h-20 w-16 shrink-0 overflow-hidden rounded bg-field"><Img src={it.image} alt="" fill sizes="64px" className="object-cover" /></div>
+                  <div className="relative h-20 w-16 shrink-0 overflow-hidden rounded bg-field"><Img src={it.image} alt="" fill sizes="64px" className={it.box ? "object-contain p-1" : "object-cover"} /></div>
                   <div className="min-w-0 flex-1 text-[14px]">
                     <div className="flex justify-between gap-2"><b>{it.productId ? <Link className="hover:underline" href={`/admin/products/${it.productId}`}>{it.name}</Link> : it.name}</b><span className="tabular-nums">{formatMoney(it.lineTotal)}</span></div>
                     <div className="text-muted">{formatMoney(it.unitPrice)} × {it.quantity}</div>
                     {(it.selections as SelectionSnapshot[]).map((s) => <div key={s.group} className="flex items-center gap-1.5">{s.hex && <span className="inline-block h-3 w-3 rounded-full border border-black/10" style={{ background: s.hex }} />}{s.group}: <b>{s.value}</b></div>)}
                     {it.personalization && <div className="mt-1 rounded bg-field/70 px-2 py-1">Personalisation: <b>“{it.personalization}”</b></div>}
                   </div>
+                </li>
+              ))}
+              {o.items.filter((it) => it.box).map((it) => (
+                <li key={`${it.id}-plan`} className="@container py-4">
+                  <p className="mb-3 text-[13px] font-semibold uppercase tracking-wide text-muted">Packing plan · {it.name}</p>
+                  <BoxPlanView box={it.box as unknown as BoxSnapshot} quantity={it.quantity} />
                 </li>
               ))}
             </ul>

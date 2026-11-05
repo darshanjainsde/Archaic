@@ -45,14 +45,15 @@ export function CartView(p: Props) {
           {c.lines.map((line, i) => {
             const q = quote?.lines[i];
             const max = Math.max(1, Math.min(p.maxQtyPerLine, q?.maxQty || p.maxQtyPerLine));
+            const href = line.box ? `/build-a-box?edit=${encodeURIComponent(line.key)}` : `/product/${line.slug}`;
             return (
               <li key={line.key} className="grid grid-cols-[88px_minmax(0,1fr)] gap-4 bg-surface p-4 sm:grid-cols-[112px_minmax(0,1fr)]" style={{ borderRadius: "var(--radius)" }}>
-                <Link href={`/product/${line.slug}`} className="relative block aspect-[4/5] overflow-hidden bg-bg">
-                  <Img src={q?.image ?? line.image} alt={line.name} fill sizes="112px" className="object-cover" />
+                <Link href={href} className="relative block aspect-[4/5] overflow-hidden bg-bg">
+                  <Img src={q?.image || line.image} alt={line.name} fill sizes="112px" className={line.box ? "object-contain p-1" : "object-cover"} />
                 </Link>
                 <div className="flex min-w-0 flex-col gap-2">
                   <div className="flex items-start justify-between gap-3">
-                    <Link href={`/product/${line.slug}`} className="-my-2 py-2 font-display text-xl leading-tight hover:underline">{line.name}</Link>
+                    <Link href={href} className="-my-2 py-2 font-display text-xl leading-tight hover:underline">{line.name}</Link>
                     <span className="shrink-0 font-semibold tabular-nums">{formatMoney(q && !q.error ? q.lineTotal : line.unitPrice * line.quantity)}</span>
                   </div>
                   {line.selectionLabels.length > 0 && (
@@ -64,6 +65,8 @@ export function CartView(p: Props) {
                       {q.error}.{" "}
                       {q.maxQty > 0 && q.maxQty < line.quantity ? (
                         <button className="underline" onClick={() => cart.setQty(line.key, q.maxQty, p.maxQtyPerLine)}>Set quantity to {q.maxQty}</button>
+                      ) : line.box ? (
+                        <Link className="underline" href={href}>Open the box</Link>
                       ) : line.slug ? (
                         <Link className="underline" href={`/product/${line.slug}`}>Choose again</Link>
                       ) : null}
@@ -71,6 +74,7 @@ export function CartView(p: Props) {
                   )}
                   <div className="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-1 pt-1">
                     <QtyStepper value={line.quantity} max={max} label={line.name} onChange={(n) => cart.setQty(line.key, n, max)} />
+                    {line.box && <Link href={href} className="inline-flex min-h-11 items-center px-2 text-[15px] font-semibold underline underline-offset-4">Edit box</Link>}
                     <button className="-mr-2 ml-auto inline-flex min-h-11 items-center gap-1.5 px-2 text-[15px] hover:underline" onClick={() => cart.remove(line.key)} aria-label={`Remove ${line.name}`}>
                       <Trash2 size={16} aria-hidden /> Remove
                     </button>
