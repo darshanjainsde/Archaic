@@ -8,3 +8,5 @@ next-env.d.ts
 public/uploads
 .taste-skill
 .vercel
+.env*
+!.env.example
