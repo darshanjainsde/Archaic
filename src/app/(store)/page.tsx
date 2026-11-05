@@ -6,8 +6,7 @@ import { getCategoryTree } from "@/lib/categories";
 import { Hero, type HeroSlide } from "@/components/store/home/hero";
 import { HeroPour, type HeroProduct } from "@/components/store/home/hero-pour";
 import {
-  CategoryTiles, MembershipSection, NewsletterSection, OccasionsSection, ProductsSection, PromoBand, ReviewsSection, RichTextSection, StorySection, UspStrip, type OccasionTile,
-} from "@/components/store/home/sections";
+  CategoryTiles, MembershipSection, NewsletterSection, OccasionsSection, ProductsSection, PromoBand, ReviewsSection, RichTextSection, StorySection, UspStrip, type OccasionTile, MakeSection } from "@/components/store/home/sections";
 import { parseOptions, parsePersonalization } from "@/lib/pricing";
 import type { HomeSection } from "@/lib/settings-schema";
 import type { Metadata } from "next";
@@ -50,7 +49,7 @@ export default async function HomePage() {
   const heroSection = sections.find((s): s is Extract<HomeSection, { type: "hero" }> => s.type === "hero");
   const occSections = sections.filter((s): s is Extract<HomeSection, { type: "occasions" }> => s.type === "occasions");
   const [heroProduct, occasionTiles] = await Promise.all([
-    heroSection?.productSlug ? loadHeroProduct(heroSection.productSlug, settings.commerce.maxQtyPerLine) : null,
+    heroSection || sections.some((s) => s.type === "make") ? loadHeroProduct(heroSection?.productSlug ?? "", settings.commerce.maxQtyPerLine) : null,
     Promise.all(occSections.map((s) => loadOccasions(s.categorySlug))),
   ]);
 
@@ -66,7 +65,7 @@ export default async function HomePage() {
           case "hero": {
             if (heroProduct) {
               return (
-                <HeroPour key={s.id} heading={s.heading || settings.store.name} text={s.text} ctaLabel={s.ctaLabel} ctaHref={s.ctaHref} product={heroProduct} buyNow={s.buyNow} pour={s.pour} eyebrow={settings.store.tagline} />
+                <HeroPour key={s.id} heading={s.heading || settings.store.name} text={s.text} ctaLabel={s.ctaLabel} ctaHref={s.ctaHref} secondaryLabel={s.secondaryLabel} secondaryHref={s.secondaryHref} proof={s.proof} product={heroProduct} buyNow={s.buyNow} pour={s.pour} eyebrow={settings.store.tagline} />
               );
             }
             const slides: HeroSlide[] = heroBanners.length
@@ -81,6 +80,8 @@ export default async function HomePage() {
               : [{ title: s.heading || settings.store.name, text: s.text, ctaLabel: s.ctaLabel, ctaHref: s.ctaHref, image: s.image ?? "/images/products/oud-amber-amber.svg" }];
             return <div key={s.id}><Hero slides={slides} storeName={settings.store.name} tagline={settings.store.tagline} /></div>;
           }
+          case "make":
+            return <MakeSection key={s.id} heading={s.heading} image={s.image ?? null} labelName={s.labelName} labelLine={s.labelLine} ctaLabel={s.ctaLabel} ctaHref={s.ctaHref || (heroProduct ? `/product/${heroProduct.slug}` : "/shop")} product={heroProduct} />;
           case "usp":
             return <UspStrip key={s.id} items={s.items} />;
           case "occasions": {
@@ -120,7 +121,7 @@ async function loadHeroProduct(slug: string, maxQtyPerLine: number): Promise<Her
   // The chosen product, or, if it was deleted, renamed or hidden, a featured (else the newest) active product,
   // so the animated hero never silently drops back to a plain banner.
   const p =
-    (await db.product.findFirst({ where: { slug, status: "ACTIVE" }, include }).catch(() => null)) ??
+    (slug ? await db.product.findFirst({ where: { slug, status: "ACTIVE" }, include }).catch(() => null) : null) ??
     (await db.product.findFirst({ where: { status: "ACTIVE", images: { some: {} } }, orderBy: [{ featured: "desc" }, { createdAt: "desc" }], include }).catch(() => null));
   if (!p) return null;
   const inStock = !p.trackInventory || p.stock > 0;
@@ -139,6 +140,7 @@ async function loadOccasions(parentSlug: string): Promise<OccasionTile[]> {
   const rows = await db.product.groupBy({ by: ["categoryId"], where: { status: "ACTIVE", categoryId: { in: parent.children.map((c) => c.id) } }, _min: { price: true }, _count: { _all: true } }).catch(() => []);
   const byId = new Map(rows.map((r) => [r.categoryId, r]));
   return parent.children
-    .map((c) => ({ slug: c.slug, name: c.name, image: c.image ?? parent.image, count: byId.get(c.id)?._count._all ?? 0, from: byId.get(c.id)?._min.price ?? null }))
-    .filter((t) => t.count > 0);
+    .map((c) => ({ slug: c.slug, name: c.name, image: c.image ?? null, count: byId.get(c.id)?._count._all ?? 0, from: byId.get(c.id)?._min.price ?? null }))
+    // Empty occasions stay visible (marked "Coming soon") so the section keeps its shape while products are added.
+    .sort((a, b) => Number(b.count > 0) - Number(a.count > 0));
 }

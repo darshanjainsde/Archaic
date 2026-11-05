@@ -30,19 +30,37 @@ export const themeSchema = z.object({
 });
 export type ThemeSettings = z.infer<typeof themeSchema>;
 
+export const HOME_LAYOUT_VERSION = 2;
+
 const sectionBase = { id: z.string().min(1), enabled: z.boolean().default(true) };
 
 export const homeSectionSchema = z.discriminatedUnion("type", [
   z.object({
     ...sectionBase, type: z.literal("hero"), heading: z.string().default(""), text: z.string().default(""), ctaLabel: z.string().default(""), ctaHref: z.string().default(""), image: z.string().nullish(),
-    /** Product shown on the hero jar with price and Buy now (slug). Empty = headline only. */
+    /** Product shown on the hero jar with price and Buy now (slug). Empty or missing = your featured (else newest) product. */
     productSlug: z.string().default(""),
+    /** Second, outlined button beside the main one (e.g. "Gifts for Diwali"). Empty label = no button. */
+    secondaryLabel: z.string().default(""),
+    secondaryHref: z.string().default(""),
+    /** One quiet line of proof under the buttons (e.g. "100% soy wax · Free shipping above ₹999"). */
+    proof: z.string().default(""),
     buyNow: z.boolean().default(true),
     /** The scroll-driven pour animation on the hero jar */
     pour: z.boolean().default(true),
   }),
   /** Gift tags: the sub-categories of `categorySlug` (e.g. Diwali, Wedding, Corporate under Gift sets) as photo tiles with count and starting price. */
   z.object({ ...sectionBase, type: z.literal("occasions"), heading: z.string().default("Gifts for the occasion"), text: z.string().default("Boxed, wrapped and ready to give."), categorySlug: z.string().default("gift-sets") }),
+  /** "Make it yours": steps built from the hero product's own scent and wax-colour options, a photo, and a label preview. */
+  z.object({
+    ...sectionBase, type: z.literal("make"),
+    heading: z.string().default("A candle no one else has."),
+    image: z.string().nullish(),
+    labelName: z.string().default("For Aanya"),
+    labelLine: z.string().default("light it on the bad days"),
+    ctaLabel: z.string().default("Start with a jar"),
+    /** Empty = the hero product's page */
+    ctaHref: z.string().default(""),
+  }),
   z.object({ ...sectionBase, type: z.literal("usp"), items: z.array(z.object({ title: z.string(), text: z.string() })).max(6) }),
   z.object({ ...sectionBase, type: z.literal("categories"), heading: z.string().default("Shop by category"), text: z.string().default("") }),
   z.object({
@@ -107,7 +125,8 @@ export const settingsSchema = z.object({
     href: z.string().default(""),
   }),
   nav: z.array(linkSchema).default([]),
-  home: z.object({ sections: z.array(homeSectionSchema) }),
+  /** version 2 = the approved layout (Nov 2026). Stored settings below 2 are upgraded once in parseSettings. */
+  home: z.object({ version: z.number().int().default(1), sections: z.array(homeSectionSchema) }),
   footer: z.object({ about: z.string().default(""), links: z.array(linkSchema).default([]) }),
   commerce: z.object({
     freeShippingThreshold: z.number().int().min(0), // paise; 0 = always free
@@ -232,22 +251,23 @@ export const DEFAULT_SETTINGS: StoreSettings = {
     { label: "Track order", href: "/track", menu: "none", categorySlug: "" },
   ],
   home: {
+    version: HOME_LAYOUT_VERSION,
     sections: [
-      { id: "hero", type: "hero", enabled: true, heading: "Choose your scent. We pour it.", text: "Scented soy candles in reusable apothecary jars, labelled for the person who will light them. Gift-wrapped by hand and shipped across India.", ctaLabel: "Shop the candles", ctaHref: "/shop", image: null, productSlug: "oud-amber", buyNow: true, pour: true },
+      { id: "hero", type: "hero", enabled: true, heading: "Choose your scent. We pour it.", text: "Scented soy candles in reusable apothecary jars, labelled for the person who will light them. Gift-wrapped by hand and shipped across India.", ctaLabel: "Shop the candles", ctaHref: "/shop", image: null, productSlug: "", buyNow: true, pour: true, secondaryLabel: "Gifts for Diwali", secondaryHref: "/shop?category=diwali-gifts", proof: "100% soy wax · Hand-poured in small batches · Free shipping above ₹999" },
       { id: "usp", type: "usp", enabled: true, items: [
-        { title: "Hand-poured soy wax", text: "Clean-burning, poured in batches of forty." },
-        { title: "Choose your scent", text: "Every candle can be poured in the scent and colour you pick." },
-        { title: "Gift-ready", text: "Wrapped by hand with a note in your words." },
-        { title: "Ships across India", text: "Dispatched within two working days." },
+        { title: "Hand-poured", text: "Small batches, never a factory line." },
+        { title: "Personalised", text: "Pick scent, wax colour and the words on the jar." },
+        { title: "Wrapped by hand", text: "Gift wrap and a handwritten note at checkout." },
+        { title: "Across India", text: "Dispatched in 2 days, delivered in 3–7." },
       ] },
       { id: "occasions", type: "occasions", enabled: true, heading: "Gifts for the occasion", text: "Boxed, wrapped and ready to give.", categorySlug: "gift-sets" },
-      { id: "cats", type: "categories", enabled: true, heading: "Shop by category", text: "" },
-      { id: "featured", type: "products", enabled: true, heading: "The apothecary shelf", text: "Our most loved pours, ready to choose your scent.", source: "featured", categorySlug: null, limit: 8, layout: "carousel" },
-      { id: "promo", type: "promo", enabled: true },
-      { id: "gifts", type: "products", enabled: true, heading: "Gift sets", text: "Boxed, wrapped and ready to give.", source: "category", categorySlug: "gift-sets", limit: 6, layout: "grid" },
-      { id: "story", type: "story", enabled: true, heading: "Why archaic", text: "Before electric light, a candle was how a house kept time. We pour ours the old way: soy wax, cotton wicks, oils blended by hand, and a label written for the person who will light it.", image: null, ctaLabel: "Read our story", ctaHref: "/pages/about" },
-      { id: "membership", type: "membership", enabled: true, heading: "", text: "" },
+      { id: "bestsellers", type: "products", enabled: true, heading: "Bestsellers", text: "", source: "bestsellers", categorySlug: null, limit: 4, layout: "grid" },
+      { id: "make", type: "make", enabled: true, heading: "A candle no one else has.", image: null, labelName: "For Aanya", labelLine: "light it on the bad days", ctaLabel: "Start with a jar", ctaHref: "" },
+      { id: "story", type: "story", enabled: true, heading: "Poured at a kitchen table, still poured by hand.", text: "Archaic began with a double boiler and a jar of soy flakes. We still pour every candle ourselves, blend our own fragrance oils, and write each label for the person who will light it.", image: null, ctaLabel: "Read our story", ctaHref: "/pages/about" },
       { id: "reviews", type: "reviews", enabled: true, heading: "Notes from our customers" },
+      { id: "cats", type: "categories", enabled: false, heading: "Shop by category", text: "" },
+      { id: "promo", type: "promo", enabled: false },
+      { id: "membership", type: "membership", enabled: false, heading: "", text: "" },
       { id: "news", type: "newsletter", enabled: false, heading: "Letters from the workshop", text: "New scents, restocks and the occasional quiet offer. No more than twice a month." },
     ],
   },
@@ -300,10 +320,27 @@ export const DEFAULT_SETTINGS: StoreSettings = {
 };
 
 /** Merge stored JSON over defaults so new fields never break old data. */
+/**
+ * One-time move of a stored homepage to the approved layout (version 2). Keeps the owner's hero product,
+ * headline and text when they changed them; everything else takes the approved sections. Saving the
+ * homepage in admin stores version 2, so this never runs again for that store.
+ */
+function upgradeHome(r: Record<string, unknown>, base: StoreSettings): Record<string, unknown> {
+  const home = r.home as { version?: number; sections?: { type?: string; productSlug?: string; heading?: string; text?: string }[] } | undefined;
+  if (!home || (home.version ?? 1) >= HOME_LAYOUT_VERSION) return r;
+  const sections = structuredClone(base.home.sections);
+  const oldHero = home.sections?.find((x) => x?.type === "hero");
+  const hero = sections.find((x) => x.type === "hero");
+  if (oldHero && hero && hero.type === "hero") {
+    if (oldHero.productSlug && oldHero.productSlug !== "oud-amber") hero.productSlug = oldHero.productSlug;
+  }
+  return { ...r, home: { version: HOME_LAYOUT_VERSION, sections } };
+}
+
 export function parseSettings(raw: unknown): StoreSettings {
   const base = structuredClone(DEFAULT_SETTINGS);
   if (!raw || typeof raw !== "object") return base;
-  const r = raw as Record<string, unknown>;
+  const r = upgradeHome(raw as Record<string, unknown>, base);
   const merged: Record<string, unknown> = { ...base };
   for (const key of Object.keys(base) as (keyof StoreSettings)[]) {
     const v = r[key];

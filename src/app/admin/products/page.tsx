@@ -34,15 +34,15 @@ export default async function ProductsPage({ searchParams }: { searchParams: Pro
   return (
     <div>
       <PageHeader title="Products" description={`${total} product${total === 1 ? "" : "s"}`} actions={<Link href="/admin/products/new" className="btn btn-primary btn-sm">Add product</Link>} />
-      <form className="mb-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_180px_200px_auto]">
-        <input name="q" defaultValue={q} type="search" placeholder="Search name, SKU or tag…" aria-label="Search products" autoComplete="off" className="field sm:col-span-2 lg:col-span-1" />
+      <form className="mb-6 grid gap-2 @md:grid-cols-2 @3xl:grid-cols-[minmax(0,1fr)_180px_200px_auto]">
+        <input name="q" defaultValue={q} type="search" placeholder="Search name, SKU or tag…" aria-label="Search products" autoComplete="off" className="field @md:col-span-2 @3xl:col-span-1" />
         <select name="status" defaultValue={sp.status ?? ""} aria-label="Status" className="field">
           <option value="">Active & drafts</option><option value="ACTIVE">Active</option><option value="DRAFT">Drafts</option><option value="ARCHIVED">Archived</option>
         </select>
         <select name="category" defaultValue={category ?? ""} aria-label="Category" className="field">
           <option value="">All categories</option>{cats.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}<option value="none">No category</option>
         </select>
-        <button className="btn btn-ink sm:col-span-2 lg:col-span-1">Filter</button>
+        <button className="btn btn-ink @md:col-span-2 @3xl:col-span-1">Filter</button>
       </form>
       {products.length === 0 ? <Empty>No products match. <Link href="/admin/products/new" className="underline underline-offset-4">Add one</Link>.</Empty> : (
         <>

@@ -58,7 +58,7 @@ export default async function OrderDetail({ params }: { params: Promise<{ id: st
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+      <div className="grid gap-6 @4xl:grid-cols-[minmax(0,1fr)_360px]">
         <div className="min-w-0 space-y-6">
           <Panel title={`Items (${o.items.reduce((s, i) => s + i.quantity, 0)})`}>
             <ul className="divide-y divide-black/5">

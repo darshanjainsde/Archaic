@@ -37,7 +37,7 @@ export function LinksEditor({ links, onChange, max = 12, addLabel = "Add link", 
         return (
           <fieldset key={i} className="rounded-lg border border-black/10 p-4">
             <legend className="sr-only">Link {i + 1}</legend>
-            <div className={withMenu ? "grid gap-4 md:grid-cols-3" : "grid gap-4 md:grid-cols-2"}>
+            <div className={withMenu ? "grid gap-4 @xl:grid-cols-3" : "grid gap-4 @md:grid-cols-2"}>
               <div className="min-w-0"><label className="label" htmlFor={`${f}-t`}>Text</label><input id={`${f}-t`} className="field" autoComplete="off" placeholder="e.g. Gift sets" value={l.label} onChange={(e) => set(i, { label: e.target.value })} /></div>
               <div className="min-w-0"><label className="label" htmlFor={`${f}-h`}>Goes to</label><input id={`${f}-h`} className="field" autoComplete="off" spellCheck={false} placeholder="/shop or https://…" value={l.href} onChange={(e) => set(i, { href: e.target.value })} /></div>
               {withMenu && (

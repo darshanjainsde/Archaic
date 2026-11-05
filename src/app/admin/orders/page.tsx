@@ -51,15 +51,15 @@ export default async function Orders({ searchParams }: { searchParams: Promise<R
         ))}
         <Link href="/admin/orders?refund=1" aria-current={sp.refund ? "page" : undefined} className={`inline-flex min-h-11 items-center whitespace-nowrap rounded-full border px-4 ${sp.refund ? "border-ink bg-ink text-bg" : "border-black/15 bg-surface hover:border-black/30"}`}>Refund due</Link>
       </nav>
-      <form className="mb-6 grid gap-2 sm:grid-cols-2 lg:grid-cols-[minmax(0,1fr)_170px_170px_170px_auto]">
+      <form className="mb-6 grid gap-2 @md:grid-cols-2 @4xl:grid-cols-[minmax(0,1fr)_170px_170px_170px_auto]">
         {sp.status && <input type="hidden" name="status" value={sp.status} />}
-        <input name="q" defaultValue={q} type="search" placeholder="Order number, email, name, AWB…" aria-label="Search orders" autoComplete="off" className="field sm:col-span-2 lg:col-span-1" />
+        <input name="q" defaultValue={q} type="search" placeholder="Order number, email, name, AWB…" aria-label="Search orders" autoComplete="off" className="field @md:col-span-2 @4xl:col-span-1" />
         <select name="payment" defaultValue={sp.payment ?? ""} aria-label="Payment status" className="field">
           <option value="">Any payment</option><option value="PAID">Paid</option><option value="PENDING">Unpaid</option><option value="COD_PENDING">COD due</option><option value="FAILED">Failed</option><option value="REFUNDED">Refunded</option>
         </select>
         <label className="flex min-w-0 items-center gap-2"><span className="w-12 shrink-0 text-[14px] text-muted lg:sr-only">From</span><input type="date" name="from" defaultValue={sp.from} aria-label="From date" className="field min-w-0" /></label>
         <label className="flex min-w-0 items-center gap-2"><span className="w-12 shrink-0 text-[14px] text-muted lg:sr-only">To</span><input type="date" name="to" defaultValue={sp.to} aria-label="To date" className="field min-w-0" /></label>
-        <button className="btn btn-ink sm:col-span-2 lg:col-span-1">Filter</button>
+        <button className="btn btn-ink @md:col-span-2 @4xl:col-span-1">Filter</button>
       </form>
       {orders.length === 0 ? <Empty>No orders match these filters.</Empty> : (
         <>

@@ -24,7 +24,7 @@ export function OrderStatusForm({ id, status, allowed, paid, tracking, eta }: { 
       {next === "CANCELLED" && paid && <p className="rounded-md bg-amber-50 p-2 text-[13px] text-amber-950">This order is paid. After cancelling, refund it in your payment gateway dashboard and then use “Mark refunded”.</p>}
       {next === "REFUNDED" && <p className="rounded-md bg-amber-50 p-2 text-[13px] text-amber-950">This only records the refund. Issue the money back from the Razorpay / Cashfree dashboard.</p>}
       {showTracking && (
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 @md:grid-cols-2">
           <div><label className="label" htmlFor="cr">Courier</label><input id="cr" name="courier" className="field" defaultValue={tracking.courier} placeholder="Delhivery, Blue Dart…" /></div>
           <div><label className="label" htmlFor="tn">Tracking number</label><input id="tn" name="trackingNumber" className="field" defaultValue={tracking.trackingNumber} /></div>
           <div className="sm:col-span-2"><label className="label" htmlFor="tu">Tracking link</label><input id="tu" name="trackingUrl" type="url" className="field" defaultValue={tracking.trackingUrl} placeholder="https://…" /></div>

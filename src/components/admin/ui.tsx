@@ -22,7 +22,7 @@ export function PageHeader({ title, description, actions, back }: { title: strin
 /** Panel: radius 12, padding 16 phone / 20 desktop, 16 under the header. */
 export function Panel({ title, children, className, actions, description, id }: { title?: string; children: React.ReactNode; className?: string; actions?: React.ReactNode; description?: string; id?: string }) {
   return (
-    <section id={id} className={cn("min-w-0 scroll-mt-20 rounded-xl border border-black/10 bg-surface p-4 md:p-5", className)}>
+    <section id={id} className={cn("@container min-w-0 scroll-mt-20 rounded-xl border border-black/10 bg-surface p-4 md:p-5", className)}>
       {(title || actions) && (
         <div className="mb-4 flex items-start gap-2">
           <div className="min-w-0 flex-1">
@@ -79,10 +79,10 @@ export function Pagination({ page, pages, makeHref }: { page: number; pages: num
   );
 }
 
-/** A table that scrolls inside its own box. `hideOnPhone` hides it below 768 px when a card list replaces it. */
+/** A table that scrolls inside its own box. `hideOnPhone` hides it when its column is under 768 px when a card list replaces it. */
 export function Table({ children, hideOnPhone }: { children: React.ReactNode; hideOnPhone?: boolean }) {
   return (
-    <div className={cn("overflow-x-auto overscroll-x-contain rounded-xl border border-black/10 bg-surface", hideOnPhone && "hidden md:block")}>
+    <div className={cn("overflow-x-auto overscroll-x-contain rounded-xl border border-black/10 bg-surface", hideOnPhone && "hidden @3xl:block")}>
       <table className="w-full min-w-[640px] border-collapse text-left text-[14px] [&_td]:border-t [&_td]:border-black/5 [&_td]:px-3 [&_td]:py-3 [&_th]:px-3 [&_th]:py-3 [&_th]:text-[13px] [&_th]:font-semibold [&_th]:text-muted [&_td>a]:inline-flex [&_td>a]:min-h-11 [&_td>a]:items-center">
         {children}
       </table>
@@ -90,9 +90,9 @@ export function Table({ children, hideOnPhone }: { children: React.ReactNode; hi
   );
 }
 
-/** Stacked cards that replace a table on phones (below 768 px). */
+/** Stacked cards that replace a table when the column is under 768 px (phones, or beside a form). */
 export function CardList({ children, label }: { children: React.ReactNode; label: string }) {
-  return <ul aria-label={label} className="space-y-3 md:hidden">{children}</ul>;
+  return <ul aria-label={label} className="space-y-3 @3xl:hidden">{children}</ul>;
 }
 export function Card({ children, className }: { children: React.ReactNode; className?: string }) {
   return <li className={cn("rounded-xl border border-black/10 bg-surface", className)}>{children}</li>;
@@ -121,7 +121,7 @@ export function ChoiceCards<T extends string>({ name, value, onChange, options, 
   return (
     <fieldset>
       <legend className="label">{legend}</legend>
-      <div className="grid gap-3 sm:grid-cols-2">
+      <div className="grid gap-3 @md:grid-cols-2">
         {options.map((o) => (
           <label key={o.value} className={cn("flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border p-4 transition-colors", value === o.value ? "border-ink bg-black/[.03] ring-1 ring-ink" : "border-black/15 hover:border-black/30")}>
             <input type="radio" name={name} value={o.value} checked={value === o.value} onChange={() => onChange(o.value)} className="mt-0.5 h-5 w-5 shrink-0 accent-[var(--accent)]" />

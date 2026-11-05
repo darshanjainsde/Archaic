@@ -101,7 +101,7 @@ export function AdminShell({ children, userName, storeName, toShip }: { children
               <button className="text-btn"><LogOut size={18} aria-hidden />Sign out</button>
             </form>
           </header>
-          <main className="mx-auto max-w-[1280px] px-4 py-6 md:px-6 md:py-8">{children}</main>
+          <main className="@container mx-auto max-w-[1280px] px-4 py-6 md:px-6 md:py-8">{children}</main>
         </div>
       </div>
     </ConfirmProvider>

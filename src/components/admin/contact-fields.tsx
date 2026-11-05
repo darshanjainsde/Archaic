@@ -83,7 +83,7 @@ export function ContactFields({ store, set }: { store: Store; set: (patch: Parti
   const id = useId();
   const f = (k: string) => `${id}-${k}`;
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="grid gap-4 @md:grid-cols-2">
       <Row id={f("em")} label="Email" hint="Shown in the footer and on order emails." problem={emailProblem(store.email)}>
         <input id={f("em")} type="email" inputMode="email" autoComplete="off" spellCheck={false} className="field" placeholder="e.g. hello@archaiccandles.com" value={store.email} aria-invalid={!!emailProblem(store.email)} aria-describedby={`${f("em")}-h`} onChange={(e) => set({ email: e.target.value })} />
       </Row>
@@ -108,7 +108,7 @@ export function ContactFields({ store, set }: { store: Store; set: (patch: Parti
 export function SocialFields({ store, set }: { store: Store; set: (patch: Partial<Store>) => void }) {
   const id = useId();
   return (
-    <div className="grid gap-4 md:grid-cols-2">
+    <div className="grid gap-4 @md:grid-cols-2">
       {SOCIAL.map((d) => {
         const fid = `${id}-${d.key}`;
         const problem = socialProblem(d.key, normaliseSocial(d.key, store[d.key]));

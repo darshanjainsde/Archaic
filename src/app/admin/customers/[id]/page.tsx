@@ -29,7 +29,7 @@ export default async function Customer({ params }: { params: Promise<{ id: strin
         actions={u.id !== me?.id && (u.role === "ADMIN"
           ? <ConfirmButton className="btn btn-ghost btn-sm" confirmText={`Remove admin access from ${u.name}?`} action={setUserRole.bind(null, u.id, "CUSTOMER")}>Remove admin access</ConfirmButton>
           : <ConfirmButton className="btn btn-ghost btn-sm" confirmText={`Give ${u.name} full admin access to the store?`} action={setUserRole.bind(null, u.id, "ADMIN")}>Make admin</ConfirmButton>)} />
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 @4xl:grid-cols-3">
         <Panel title="Contact">
           <p className="text-[14px]">{u.email}</p>
           <p className="text-[14px]">{u.phone || <span className="text-muted">No phone</span>}</p>
@@ -47,7 +47,7 @@ export default async function Customer({ params }: { params: Promise<{ id: strin
       </div>
       <Panel title="Addresses">
         {u.addresses.length === 0 ? <p className="text-[14px] text-muted">No saved addresses.</p> : (
-          <ul className="grid gap-3 md:grid-cols-2">
+          <ul className="grid gap-3 @md:grid-cols-2">
             {u.addresses.map((a) => (
               <li key={a.id} className="rounded-md bg-field/60 p-3 text-[14px]">
                 <b>{a.name}</b>{a.isDefault && <span className="ml-2"><Tag>Default</Tag></span>}<br />{a.line1}{a.line2 ? `, ${a.line2}` : ""}<br />{a.city}, {a.state} {a.pincode}<br />{a.phone}

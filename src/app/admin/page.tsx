@@ -78,7 +78,7 @@ export default async function Dashboard() {
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 @3xl:grid-cols-4">
         {stats.map((st) => {
           const inner = (
             <>
@@ -95,8 +95,8 @@ export default async function Dashboard() {
         })}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        <Panel title="Revenue by day" description="Last 30 days, India time. Paid online orders and active COD orders." className="lg:col-span-2">
+      <div className="grid gap-6 @4xl:grid-cols-3">
+        <Panel title="Revenue by day" description="Last 30 days, India time. Paid online orders and active COD orders." className="@4xl:col-span-2">
           <svg viewBox="0 0 600 180" className="h-44 w-full" role="img" aria-label={`Daily revenue for the last 30 days, highest ${formatMoney(max)}`}>
             {days.map((d, i) => {
               const h = d.total ? Math.max(2, (d.total / max) * 150) : 0;

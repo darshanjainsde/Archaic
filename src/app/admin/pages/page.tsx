@@ -37,7 +37,7 @@ export default async function Pages({ searchParams }: { searchParams: Promise<{ 
         <Panel id="page-form" title={p ? `Edit “${p.title}”` : "New page"} className="mb-6" actions={<Link href="/admin/pages" className="text-btn -mr-3 -mt-3">Close</Link>}>
           <ActionForm key={p?.id ?? "new"} action={savePage} className="space-y-4">
             <input type="hidden" name="id" value={p?.id ?? ""} />
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 @md:grid-cols-2">
               <div>
                 <label className="label" htmlFor="pt">Title</label>
                 <input id="pt" name="title" className="field" defaultValue={p?.title} required placeholder="e.g. Our story" autoComplete="off" />
@@ -52,7 +52,7 @@ export default async function Pages({ searchParams }: { searchParams: Promise<{ 
               </div>
             </div>
             <MarkdownField name="content" label="Page text" defaultValue={p?.content ?? ""} rows={16} />
-            <div className="grid gap-x-6 sm:grid-cols-2">
+            <div className="grid gap-x-6 @md:grid-cols-2">
               <Toggle name="isPublished" label="Published" hint="Off = hidden from customers (a draft)." defaultChecked={p?.isPublished ?? true} />
               <Toggle name="showInFooter" label="Show in footer" hint="Adds a link at the bottom of every page." defaultChecked={p?.showInFooter ?? true} />
             </div>

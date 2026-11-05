@@ -31,7 +31,7 @@ export default async function Customers({ searchParams }: { searchParams: Promis
   return (
     <div>
       <PageHeader title="Customers" description={`${total} account${total === 1 ? "" : "s"}`} />
-      <form className="mb-6 grid gap-2 sm:grid-cols-[minmax(0,1fr)_180px_auto]">
+      <form className="mb-6 grid gap-2 @xl:grid-cols-[minmax(0,1fr)_180px_auto]">
         <input name="q" defaultValue={q} type="search" placeholder="Search name, email or phone…" aria-label="Search customers" autoComplete="off" className="field" />
         <select name="role" defaultValue={sp.role ?? ""} aria-label="Role" className="field"><option value="">Everyone</option><option value="ADMIN">Admins</option></select>
         <button className="btn btn-ink">Search</button>

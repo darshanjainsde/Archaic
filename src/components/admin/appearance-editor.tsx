@@ -3,7 +3,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ExternalLink, Flame, Wind } from "lucide-react";
-import { THEME_PRESETS, DEFAULT_SETTINGS, type StoreSettings, type ThemeSettings } from "@/lib/settings-schema";
+import { THEME_PRESETS, DEFAULT_SETTINGS, type StoreSettings, type ThemeSettings, HOME_LAYOUT_VERSION } from "@/lib/settings-schema";
 import { FONT_OPTIONS, fontVar } from "@/lib/fonts-list";
 import { contrastRatio } from "@/lib/contrast";
 import { saveSettingsParts } from "@/actions/admin/settings";
@@ -129,7 +129,7 @@ function Editor({ initial, categories, products, initialTab, onDiscard }: Props 
     const badColor = Object.values(theme.colors).find((c) => !valid(c));
     if (badColor !== undefined) { setTab("theme"); toast.error(`“${badColor}” is not a colour. Use 6-digit hex like #2B2216.`); return; }
     const cleanStore = normaliseStore(store);
-    const parts: Partial<StoreSettings> = { theme, store: cleanStore, announcement: { ...announcement, messages: announcement.messages.map((m) => m.trim()).filter(Boolean) }, nav: nav.filter((l) => l.label.trim() && l.href.trim()), home: { sections }, footer: { ...footer, links: footer.links.filter((l) => l.label.trim() && l.href.trim()) } };
+    const parts: Partial<StoreSettings> = { theme, store: cleanStore, announcement: { ...announcement, messages: announcement.messages.map((m) => m.trim()).filter(Boolean) }, nav: nav.filter((l) => l.label.trim() && l.href.trim()), home: { version: HOME_LAYOUT_VERSION, sections }, footer: { ...footer, links: footer.links.filter((l) => l.label.trim() && l.href.trim()) } };
     start(async () => {
       const r = await saveSettingsParts(parts);
       if (r.ok) { setStore(cleanStore); setDirty(false); toast.success(r.message ?? "Saved"); router.refresh(); }
@@ -151,10 +151,10 @@ function Editor({ initial, categories, products, initialTab, onDiscard }: Props 
       <EditorTabs tabs={TABS} value={tab} onChange={setTab} extra={<a href="/" target="_blank" rel="noreferrer" className="btn btn-ghost btn-sm shrink-0" aria-label="Open store in a new tab"><ExternalLink size={18} aria-hidden /><span className="hidden sm:inline">Open store</span></a>} />
 
       {tab === "theme" && (
-        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <div className="grid gap-6 @4xl:grid-cols-[minmax(0,1fr)_380px]">
           <div className="min-w-0 space-y-6">
             <Panel title="Ready-made looks" description="Start from a look, then fine-tune the colours below." actions={resetBtn("theme", "colours, type and animation")}>
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+              <div className="grid grid-cols-2 gap-3 @xl:grid-cols-3">
                 {Object.entries(THEME_PRESETS).map(([k, p]) => (
                   <button key={k} type="button" aria-pressed={theme.preset === k} onClick={() => { setDirty(true); setTheme({ preset: k, motion: theme.motion, ...structuredClone(p.theme) }); }} className={cn("min-h-11 rounded-lg border p-2 text-left", theme.preset === k ? "border-ink ring-2 ring-ink" : "border-black/10 hover:border-black/30")}>
                     <div className="flex h-10 overflow-hidden rounded-md">
@@ -178,12 +178,12 @@ function Editor({ initial, categories, products, initialTab, onDiscard }: Props 
               />
             </Panel>
             <Panel title="Colours" description="Changes show in the preview straight away.">
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 @md:grid-cols-2">
                 {COLOR_LABELS.map(([k, l]) => <ColorField key={k} label={l} value={theme.colors[k]} onChange={(v) => setColor(k, v)} warn={warnFor(k)} />)}
               </div>
             </Panel>
             <Panel title="Type & shape">
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid gap-4 @md:grid-cols-2">
                 <div>
                   <label className="label" htmlFor="df">Heading font</label>
                   <select id="df" className="field" value={theme.displayFont} onChange={(e) => th({ displayFont: e.target.value as ThemeSettings["displayFont"] })}>
@@ -213,7 +213,7 @@ function Editor({ initial, categories, products, initialTab, onDiscard }: Props 
               </div>
             </Panel>
           </div>
-          <div className="min-w-0 lg:sticky lg:top-32 lg:self-start">
+          <div className="min-w-0 lg:sticky lg:top-32 @4xl:self-start">
             <h2 className="mb-2 text-[15px] font-semibold">Live preview</h2>
             <Preview t={theme} store={store} />
           </div>
@@ -223,7 +223,7 @@ function Editor({ initial, categories, products, initialTab, onDiscard }: Props 
       {tab === "brand" && (
         <div className="space-y-6">
           <Panel title="Brand" description="Your name and logo, shown at the top of every page.">
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 @md:grid-cols-2">
               <div><label className="label" htmlFor="sn">Store name</label><input id="sn" className="field" autoComplete="off" value={store.name} aria-invalid={!store.name.trim()} onChange={(e) => st({ name: e.target.value })} />{!store.name.trim() && <p className="error-text">The store needs a name.</p>}</div>
               <div><label className="label" htmlFor="tg">Tagline</label><input id="tg" className="field" autoComplete="off" placeholder="e.g. Hand-poured candles & gifts" value={store.tagline} onChange={(e) => st({ tagline: e.target.value })} /><p className="hint">A short line used under the name and in search results.</p></div>
               <div className="md:col-span-2"><ImageField label="Logo" value={store.logoUrl} onChange={(v) => st({ logoUrl: v })} aspect="10/3" hint="Transparent PNG or WebP, about 400 × 120 px. Leave empty to show the store name as text." /></div>

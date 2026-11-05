@@ -132,9 +132,9 @@ function Form({ initial, gateways, webhooks, initialTab, onDiscard, products, ca
       )}
 
       {tab === "checkout" && (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6 @4xl:grid-cols-2">
           <Panel title="Delivery times" description="Shown on product pages and order emails. The delivery charge is under Delivery & rewards.">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 @md:grid-cols-2">
               <Num id="dd" label="Dispatch within (days)" value={commerce.dispatchDays} max={30} onChange={(v) => cm({ dispatchDays: v })} />
               <Num id="dmin" label="Delivery days, from" value={commerce.deliveryDaysMin} min={1} max={30} onChange={(v) => cm({ deliveryDaysMin: v })} />
               <Num id="dmax" label="Delivery days, up to" value={commerce.deliveryDaysMax} min={1} max={45} onChange={(v) => cm({ deliveryDaysMax: v })} />
@@ -145,7 +145,7 @@ function Form({ initial, gateways, webhooks, initialTab, onDiscard, products, ca
             {commerce.giftWrapEnabled && <div className="mt-4 max-w-xs"><Rupee id="gw" label="Gift wrap price" value={money.giftWrapPrice} onChange={(v) => mn({ giftWrapPrice: v })} hint="Paid membership tiers get it free" /></div>}
           </Panel>
           <Panel title="Cart & inventory">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 @md:grid-cols-2">
               <Num id="mq" label="Max quantity per item" value={commerce.maxQtyPerLine} min={1} max={99} onChange={(v) => cm({ maxQtyPerLine: v })} />
               <Num id="ls" label="Low-stock alert at" value={commerce.lowStockThreshold} max={1000} onChange={(v) => cm({ lowStockThreshold: v })} />
               <div className="sm:col-span-2"><label className="label" htmlFor="tx">Tax note</label><input id="tx" className="field" value={commerce.taxNote} onChange={(e) => cm({ taxNote: e.target.value })} /></div>
@@ -159,7 +159,7 @@ function Form({ initial, gateways, webhooks, initialTab, onDiscard, products, ca
       )}
 
       {tab === "payments" && (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className="grid gap-6 @4xl:grid-cols-2">
           <Panel title="Payment methods at checkout" description="A gateway only appears when it is switched on here AND its keys are set in Vercel environment variables.">
             <Toggle label="Cashfree (UPI, cards, netbanking, wallets)" checked={commerce.cashfreeEnabled} onChange={(v) => cm({ cashfreeEnabled: v })} hint={gateways.cashfree ? `Keys found · ${gateways.cashfreeEnv} mode` : "Keys missing: CASHFREE_APP_ID, CASHFREE_SECRET_KEY"} />
             <Toggle label="Razorpay (UPI, cards, netbanking, wallets)" checked={commerce.razorpayEnabled} onChange={(v) => cm({ razorpayEnabled: v })} hint={gateways.razorpay ? "Keys found" : "Keys missing: RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET"} />
@@ -170,7 +170,7 @@ function Form({ initial, gateways, webhooks, initialTab, onDiscard, products, ca
             <div className="mt-4 border-t border-black/10 pt-3">
               <Toggle label="Cash on delivery" checked={commerce.codEnabled} onChange={(v) => cm({ codEnabled: v })} />
               {commerce.codEnabled && (
-                <div className="mt-3 grid gap-4 sm:grid-cols-2">
+                <div className="mt-3 grid gap-4 @md:grid-cols-2">
                   <Rupee id="cf" label="COD fee" value={money.codFee} onChange={(v) => mn({ codFee: v })} />
                   <Rupee id="cm" label="COD only up to" value={money.codMaxOrder} onChange={(v) => mn({ codMaxOrder: v })} hint="0 = no limit" />
                 </div>
@@ -204,7 +204,7 @@ function Form({ initial, gateways, webhooks, initialTab, onDiscard, products, ca
       {tab === "membership" && (
         <div className="space-y-6">
           <Panel title="Programme">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 @md:grid-cols-2">
               <div className="sm:col-span-2"><Toggle label="Membership programme on" hint="Members earn tiers from lifetime spend on paid, non-cancelled orders. Tier discounts apply automatically at checkout." checked={membership.enabled} onChange={(v) => { setDirty(true); setMembership((m) => ({ ...m, enabled: v })); }} /></div>
               <div><label className="label" htmlFor="mname">Programme name</label><input id="mname" className="field" value={membership.name} onChange={(e) => { setDirty(true); setMembership((m) => ({ ...m, name: e.target.value })); }} /></div>
             </div>
@@ -214,7 +214,7 @@ function Form({ initial, gateways, webhooks, initialTab, onDiscard, products, ca
               {tiers.map((t, i) => (
                 <fieldset key={i} className="rounded-lg border border-black/10 p-4">
                   <legend className="sr-only">Tier {i + 1}</legend>
-                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_160px_120px_96px_auto]">
+                  <div className="grid gap-4 @md:grid-cols-2 @3xl:grid-cols-[minmax(0,1fr)_160px_120px_96px_auto]">
                     <div><label className="label" htmlFor={`tn-${i}`}>Name</label><input id={`tn-${i}`} className="field" value={t.name} onChange={(e) => setTier(i, { name: e.target.value })} /></div>
                     <Rupee id={`ts-${i}`} label="Lifetime spend from" value={t.minSpend} onChange={(v) => setTier(i, { minSpend: v })} />
                     <div><label className="label" htmlFor={`td-${i}`}>Discount %</label><input id={`td-${i}`} type="number" min={0} max={50} step={0.5} className="field" value={t.discountPct} onChange={(e) => setTier(i, { discountPct: Math.max(0, Math.min(50, Number(e.target.value) || 0)) })} /></div>
@@ -236,7 +236,7 @@ function Form({ initial, gateways, webhooks, initialTab, onDiscard, products, ca
 
       {tab === "seo" && (
         <Panel title="Search & sharing">
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-4 @4xl:grid-cols-2">
             <div className="space-y-4">
               <div><label className="label" htmlFor="st">Homepage title</label><input id="st" className="field" maxLength={120} value={seo.title} onChange={(e) => { setDirty(true); setSeo((s) => ({ ...s, title: e.target.value })); }} /><p className="hint">{seo.title.length}/60 recommended</p></div>
               <div><label className="label" htmlFor="sd">Description</label><textarea id="sd" rows={4} maxLength={300} className="field" value={seo.description} onChange={(e) => { setDirty(true); setSeo((s) => ({ ...s, description: e.target.value })); }} /><p className="hint">{seo.description.length}/160 recommended</p></div>

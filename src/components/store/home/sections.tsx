@@ -65,6 +65,15 @@ export function UspStrip({ items }: { items: { title: string; text: string }[] }
   );
 }
 
+/** The category's own photo; a drawn placeholder or none falls back to a matching occasion photo. */
+const OCCASION_PHOTOS: [RegExp, string][] = [[/diwali|festiv|deepavali/i, "diwali"], [/wedding|favour|shaadi/i, "wedding"], [/birthday/i, "birthday"], [/house|griha/i, "housewarming"], [/corporate|bulk|office/i, "corporate"]];
+const CYCLE = ["diwali", "wedding", "birthday", "housewarming", "corporate"];
+function occasionPhoto(t: OccasionTile, i: number) {
+  if (t.image && !/\.svg($|\?)/i.test(t.image)) return t.image;
+  const hit = OCCASION_PHOTOS.find(([re]) => re.test(`${t.slug} ${t.name}`));
+  return `/images/home/${hit ? hit[1] : CYCLE[i % CYCLE.length]}.jpg`;
+}
+
 export type OccasionTile = { slug: string; name: string; image: string | null; count: number; from: number | null };
 
 /** Gift tags: the sub-categories of one category as photo tiles with a kraft chip ("5 gifts · from ₹1,499"). */
@@ -83,12 +92,12 @@ export function OccasionsSection({ heading, text, parentSlug, tiles }: { heading
         </Link>
       </div>
       <div className="occ" style={{ "--occ-cols": cols } as React.CSSProperties}>
-        {tiles.map((t) => (
+        {tiles.map((t, i) => (
           <Link key={t.slug} href={`/shop?category=${t.slug}`} className="occ-tile">
-            <Img src={t.image} alt="" fill sizes="(min-width:1024px) 20vw, 50vw" className="object-cover" />
+            <Img src={occasionPhoto(t, i)} alt="" fill sizes="(min-width:1024px) 20vw, 50vw" className="object-cover" />
             <span className="occ-tx">
               <span className="occ-name">{t.name}</span>
-              <span className="occ-chip">{t.count} {t.count === 1 ? "gift" : "gifts"}{t.from !== null && <><i aria-hidden /> from {formatMoney(t.from)}</>}</span>
+              <span className="occ-chip">{t.count > 0 ? <>{t.count} {t.count === 1 ? "gift" : "gifts"}{t.from !== null && <><i aria-hidden /> from {formatMoney(t.from)}</>}</> : "Coming soon"}</span>
               <span className="occ-go" aria-hidden>Shop {t.name.toLowerCase()} →</span>
             </span>
           </Link>
@@ -166,7 +175,7 @@ export function StorySection({ heading, text, image, ctaLabel, ctaHref, storeNam
   return (
     <section className="reveal container-x grid items-center gap-8 md:grid-cols-12 md:gap-6">
       <div className="relative aspect-[4/5] overflow-hidden bg-surface md:col-span-5" style={{ borderRadius: "var(--radius)" }}>
-        <Img src={image || "/images/products/pillar-trio-ivory.svg"} alt="" fill sizes="(min-width:768px) 40vw, 100vw" className="object-cover" />
+        <Img src={image && !/\.svg($|\?)/i.test(image) ? image : "/images/home/pour.jpg"} alt="" fill sizes="(min-width:768px) 40vw, 100vw" className="object-cover" />
       </div>
       <div className="label-panel p-6 md:col-span-6 md:col-start-7 md:p-12">
         <h2 className="text-[36px] md:text-[54px]">{heading}</h2>
@@ -255,3 +264,5 @@ export function RichTextSection({ heading, body }: { heading: string; body: stri
     </section>
   );
 }
+
+export { MakeSection } from "./make-section";

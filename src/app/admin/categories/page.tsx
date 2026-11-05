@@ -36,8 +36,8 @@ export default async function Categories({ searchParams }: { searchParams: Promi
         description="Two levels: a category, and sub-categories inside it. They build the shop filters, the header dropdowns and the homepage tiles."
         actions={<Link href="/admin/categories#category-form" className="btn btn-primary btn-sm"><Plus size={18} aria-hidden />New category</Link>}
       />
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]">
-        <div className={`${editing ? "order-2" : "order-1"} min-w-0 space-y-6 lg:order-1`}>
+      <div className="grid gap-6 @4xl:grid-cols-[minmax(0,1fr)_400px]">
+        <div className={`${editing ? "order-2" : "order-1"} @container min-w-0 space-y-6 @4xl:order-1`}>
           <CardList label="Categories">
             {all.map(({ c, depth }) => {
               const kids = byParent.get(c.id)?.length ?? 0;
@@ -99,7 +99,7 @@ export default async function Categories({ searchParams }: { searchParams: Promi
           )}
         </div>
 
-        <Panel id="category-form" title={current ? `Edit ${current.name}` : defaultParent ? `New sub-category of ${parents.find((p) => p.id === defaultParent)?.name}` : "New category"} className={`${editing ? "order-1" : "order-2"} lg:order-2 lg:self-start`} actions={current && <Link href="/admin/categories" className="text-btn -mr-3 -mt-3">Cancel</Link>}>
+        <Panel id="category-form" title={current ? `Edit ${current.name}` : defaultParent ? `New sub-category of ${parents.find((p) => p.id === defaultParent)?.name}` : "New category"} className={`${editing ? "order-1" : "order-2"} @4xl:order-2 @4xl:self-start`} actions={current && <Link href="/admin/categories" className="text-btn -mr-3 -mt-3">Cancel</Link>}>
           <ActionForm key={current?.id ?? `new-${defaultParent}`} action={saveCategory} className="space-y-4" resetOnSuccess={!current}>
             <input type="hidden" name="id" value={current?.id ?? ""} />
             <div><label className="label" htmlFor="c-name">Name</label><input id="c-name" name="name" className="field" autoComplete="off" defaultValue={current?.name} required placeholder="e.g. Diwali gifts" /></div>

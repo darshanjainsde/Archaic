@@ -124,7 +124,7 @@ export function OptionBuilder({ groups, onChange, productImages }: { groups: Edi
         return (
           <fieldset key={g.key} className="min-w-0 rounded-xl border border-black/10 p-4 md:p-5">
             <legend className="px-1 text-[14px] font-semibold text-muted">Option {gi + 1}</legend>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 @md:grid-cols-2">
               <div className="min-w-0">
                 <label className="label" htmlFor={`${gid}-n`}>Option name</label>
                 <input id={`${gid}-n`} className="field" autoComplete="off" value={g.name} placeholder="e.g. Scent" onChange={(e) => setGroup(gi, { name: e.target.value })} />
@@ -145,38 +145,39 @@ export function OptionBuilder({ groups, onChange, productImages }: { groups: Edi
                 const vid = `${gid}-${val.key}`;
                 const hexBad = usesColour(g.display) && !isHex(val.hex);
                 return (
-                  <li key={val.key} className="min-w-0 rounded-lg border border-black/10 bg-bg/50 p-3">
-                    <div className={cn("grid gap-4", usesColour(g.display) ? "sm:grid-cols-[minmax(0,1fr)_200px_140px]" : "sm:grid-cols-[minmax(0,1fr)_140px]")}>
-                      <div className="min-w-0">
-                        <div className="-mt-2 mb-1 flex items-center gap-1">
-                          <label className="label !mb-0 flex-1" htmlFor={`${vid}-l`}>Value {vi + 1}</label>
-                          <button type="button" aria-label={`Move ${val.label || `value ${vi + 1}`} up`} className="icon-btn" disabled={vi === 0} onClick={() => setGroup(gi, { values: move(g.values, vi, -1) })}><ArrowUp size={20} aria-hidden /></button>
-                          <button type="button" aria-label={`Remove ${val.label || `value ${vi + 1}`}`} className="icon-btn is-danger -mr-2" disabled={g.values.length === 1} onClick={() => setGroup(gi, { values: g.values.filter((_, i) => i !== vi) })}><Trash2 size={20} aria-hidden /></button>
-                        </div>
+                  <li key={val.key} className="@container min-w-0 rounded-lg border border-black/10 bg-bg/50 p-4">
+                    <div className="mb-3 flex items-center gap-1">
+                      <span className="flex-1 text-[15px] font-semibold">Value {vi + 1}</span>
+                      <button type="button" aria-label={`Move ${val.label || `value ${vi + 1}`} up`} className="icon-btn" disabled={vi === 0} onClick={() => setGroup(gi, { values: move(g.values, vi, -1) })}><ArrowUp size={20} aria-hidden /></button>
+                      <button type="button" aria-label={`Remove ${val.label || `value ${vi + 1}`}`} className="icon-btn is-danger -mr-2" disabled={g.values.length === 1} onClick={() => setGroup(gi, { values: g.values.filter((_, i) => i !== vi) })}><Trash2 size={20} aria-hidden /></button>
+                    </div>
+                    <div className={cn("grid gap-4", usesColour(g.display) ? "@md:grid-cols-2 @2xl:grid-cols-[minmax(0,1fr)_minmax(0,200px)_minmax(0,140px)]" : "@md:grid-cols-[minmax(0,1fr)_minmax(0,160px)]")}>
+                      <div className={cn("min-w-0", usesColour(g.display) && "@md:col-span-2 @2xl:col-span-1")}>
+                        <label className="label" htmlFor={`${vid}-l`}>Name</label>
                         <input id={`${vid}-l`} className="field" autoComplete="off" placeholder="e.g. Sandalwood" value={val.label} onChange={(e) => setValue(gi, vi, { label: e.target.value })} />
-                        {g.display === "candle" && (
-                          <>
-                            <label className="label mt-3" htmlFor={`${vid}-note`}>Scent notes <span className="font-normal text-muted">(optional, shown under the name)</span></label>
-                            <input id={`${vid}-note`} className="field" autoComplete="off" maxLength={80} placeholder="e.g. resin · honey" value={val.note ?? ""} onChange={(e) => setValue(gi, vi, { note: e.target.value })} />
-                          </>
-                        )}
                       </div>
                       {usesColour(g.display) && (
                         <div className="min-w-0">
-                          <label className="label sm:flex sm:min-h-11 sm:items-center sm:!mb-1 sm:-mt-2" htmlFor={`${vid}-h`}>Colour</label>
+                          <label className="label" htmlFor={`${vid}-h`}>Colour</label>
                           <div className="flex items-center gap-2">
-                            <input type="color" aria-label={`Pick colour for ${val.label || `value ${vi + 1}`}`} className="h-12 w-12 shrink-0 cursor-pointer rounded-lg border border-black/15 p-1" value={isHex(val.hex) ? val.hex : "#cccccc"} onChange={(e) => setValue(gi, vi, { hex: e.target.value })} />
+                            <input type="color" aria-label={`Pick colour for ${val.label || `value ${vi + 1}`}`} className="h-12 w-12 shrink-0 cursor-pointer rounded-lg border border-black/15 bg-white p-1" value={isHex(val.hex) ? val.hex : "#cccccc"} onChange={(e) => setValue(gi, vi, { hex: e.target.value })} />
                             <input id={`${vid}-h`} className="field min-w-0 uppercase" autoComplete="off" spellCheck={false} maxLength={7} aria-invalid={hexBad} value={val.hex} onChange={(e) => setValue(gi, vi, { hex: e.target.value.startsWith("#") ? e.target.value : `#${e.target.value}` })} />
                           </div>
                           {hexBad && <p className="error-text">Use a code like #C9A27E</p>}
                         </div>
                       )}
                       <div className="min-w-0">
-                        <label className="label sm:flex sm:min-h-11 sm:items-center sm:!mb-1 sm:-mt-2" htmlFor={`${vid}-p`}>Price change (₹)</label>
+                        <label className="label" htmlFor={`${vid}-p`}>Price change (₹)</label>
                         <input id={`${vid}-p`} inputMode="decimal" autoComplete="off" className="field" placeholder="0" value={val.priceDelta} onChange={(e) => setValue(gi, vi, { priceDelta: e.target.value })} />
                       </div>
+                      {g.display === "candle" && (
+                        <div className={cn("min-w-0", usesColour(g.display) ? "@md:col-span-2 @2xl:col-span-3" : "@md:col-span-2")}>
+                          <label className="label" htmlFor={`${vid}-note`}>Scent notes <span className="font-normal text-muted">(optional, shown under the name)</span></label>
+                          <input id={`${vid}-note`} className="field" autoComplete="off" maxLength={80} placeholder="e.g. resin · honey" value={val.note ?? ""} onChange={(e) => setValue(gi, vi, { note: e.target.value })} />
+                        </div>
+                      )}
                     </div>
-                    <div className="mt-2 flex flex-wrap items-center gap-x-2">
+                    <div className="mt-3 flex flex-wrap items-center gap-x-2 border-t border-black/5 pt-1">
                       <label className="check-row mr-auto"><input type="checkbox" checked={val.available} onChange={(e) => setValue(gi, vi, { available: e.target.checked })} /><span className="text-[15px]">In stock</span></label>
                       <button type="button" className="text-btn" aria-expanded={imgOpen === val.key} onClick={() => setImgOpen(imgOpen === val.key ? null : val.key)}>
                         {val.image ? <span className="relative h-7 w-7 overflow-hidden rounded"><Img src={val.image} alt="" fill sizes="28px" className="object-cover" /></span> : <ImageIcon size={18} aria-hidden />}
@@ -187,7 +188,7 @@ export function OptionBuilder({ groups, onChange, productImages }: { groups: Edi
                       <div className="mt-2 rounded-lg border border-black/10 bg-surface p-3">
                         <p className="mb-2 text-[14px] text-muted">Shown in the gallery when a customer picks “{val.label || "this value"}”.</p>
                         {productImages.length > 0 && (
-                          <div className="grid grid-cols-4 gap-2 sm:grid-cols-6">
+                          <div className="grid grid-cols-4 gap-2 @lg:grid-cols-6">
                             {productImages.map((u, k) => (
                               <button type="button" key={u} className={cn("relative aspect-square overflow-hidden rounded-md border", val.image === u ? "border-ink ring-2 ring-ink" : "border-black/10")} onClick={() => setValue(gi, vi, { image: u })} aria-label={`Use product photo ${k + 1}`} aria-pressed={val.image === u}><Img src={u} alt="" fill sizes="80px" className="object-cover" /></button>
                             ))}

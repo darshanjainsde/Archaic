@@ -67,7 +67,7 @@ export function ImagesEditor({ images, onChange }: { images: EditableImage[]; on
       </div>
 
       {images.length > 0 && (
-        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <ul className="grid grid-cols-1 gap-4 @md:grid-cols-2 @3xl:grid-cols-3">
           {images.map((im, i) => (
             <li key={im.url + i} className="min-w-0 rounded-lg border border-black/10 bg-surface p-3">
               <div className="relative aspect-[4/5] overflow-hidden rounded-lg bg-field">
@@ -76,11 +76,11 @@ export function ImagesEditor({ images, onChange }: { images: EditableImage[]; on
               </div>
               <label className="sr-only" htmlFor={`alt-${i}`}>Describe image {i + 1}</label>
               <input id={`alt-${i}`} className="field mt-3" placeholder="Describe it, e.g. Amber jar, lid off…" autoComplete="off" value={im.alt} onChange={(e) => onChange(images.map((x, k) => (k === i ? { ...x, alt: e.target.value } : x)))} />
-              <div className="mt-2 flex flex-wrap items-center justify-between gap-1">
-                <div className="flex">
+              <div className="mt-2 flex items-center gap-1">
+                <div className="flex min-w-0 flex-1 flex-wrap items-center">
                   <button type="button" aria-label={`Move image ${i + 1} earlier`} className="icon-btn" disabled={i === 0} onClick={() => move(i, i - 1)}><ArrowLeft size={20} aria-hidden /></button>
                   <button type="button" aria-label={`Move image ${i + 1} later`} className="icon-btn" disabled={i === images.length - 1} onClick={() => move(i, i + 1)}><ArrowRight size={20} aria-hidden /></button>
-                  {i > 0 && <button type="button" className="text-btn" onClick={() => move(i, 0)}><Star size={18} aria-hidden />Make cover</button>}
+                  {i > 0 && <button type="button" className="text-btn px-2" aria-label={`Make image ${i + 1} the cover`} onClick={() => move(i, 0)}><Star size={18} aria-hidden />Cover</button>}
                 </div>
                 <button type="button" aria-label={`Remove image ${i + 1}`} className="icon-btn is-danger" onClick={async () => { if (await confirm({ title: "Remove this image?", body: "It is removed from the product when you save.", confirmLabel: "Remove", danger: true })) onChange(images.filter((_, k) => k !== i)); }}><Trash2 size={20} aria-hidden /></button>
               </div>

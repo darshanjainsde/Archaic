@@ -95,7 +95,7 @@ export function DeliveryRewards({ delivery, setDelivery, gifts, setGifts, upsell
       <Panel title="Delivery charge" description="What shoppers pay for delivery, and when it becomes free.">
         <Toggle label="Charge for delivery" hint="Off: delivery is always free." checked={delivery.charge} onChange={(v) => setDelivery({ charge: v })} />
         {delivery.charge && (
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <div className="mt-4 grid gap-4 @md:grid-cols-2">
             <RupeeInput id={`${id}-flat`} label="Delivery charge" value={delivery.flat} onChange={(v) => setDelivery({ flat: v })} placeholder="e.g. 79" hint="Added to orders below the free-delivery amount." />
             <RupeeInput id={`${id}-free`} label="Free delivery when the order is at least" value={delivery.free} onChange={(v) => setDelivery({ free: v })} placeholder="e.g. 999" hint="Measured after discounts. Leave empty or 0 to always charge." />
           </div>
@@ -116,7 +116,7 @@ export function DeliveryRewards({ delivery, setDelivery, gifts, setGifts, upsell
               <fieldset key={g.id} className="min-w-0 rounded-lg border border-black/10 p-4">
                 <legend className="flex items-center gap-2 px-1 text-[14px] font-semibold text-muted"><Gift size={16} aria-hidden />Free gift {i + 1}</legend>
                 <Toggle label="Offer this gift" checked={g.enabled} onChange={(v) => setGift(i, { enabled: v })} />
-                <div className="mt-2 grid gap-4 md:grid-cols-2">
+                <div className="mt-2 grid gap-4 @md:grid-cols-2">
                   <div className="min-w-0">
                     <RupeeInput id={`${gid}-t`} label="When the order reaches" value={g.threshold} onChange={(v) => setGift(i, { threshold: v })} placeholder="e.g. 1499" />
                     {dup && <p className="error-text">Another gift unlocks at this amount. Use a different one.</p>}
@@ -151,7 +151,7 @@ export function DeliveryRewards({ delivery, setDelivery, gifts, setGifts, upsell
       <Panel title="Bag & checkout suggestions" description="We show the products that close the gap to free delivery or the next gift first.">
         <Toggle label="Show suggestions in the bag" checked={upsell.enabled} onChange={(v) => setUpsell({ enabled: v })} />
         {upsell.enabled && (
-          <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <div className="mt-4 grid gap-4 @md:grid-cols-2">
             <div className="min-w-0 md:col-span-2">
               <label className="label" htmlFor={`${id}-uh`}>Heading</label>
               <input id={`${id}-uh`} className="field" autoComplete="off" placeholder="e.g. Add one of these for free delivery" value={upsell.heading} onChange={(e) => setUpsell({ heading: e.target.value })} />

@@ -29,7 +29,7 @@ export default async function Banners({ searchParams }: { searchParams: Promise<
       <PageHeader title="Banners & ads" description="Hero slides, promo blocks and popups. Schedule them for sales and festivals." actions={<Link href="/admin/banners?edit=new" className="btn btn-primary btn-sm">New banner</Link>} />
       {showForm && (
         <Panel title={b ? "Edit banner" : "New banner"} className="mb-6" actions={<Link href="/admin/banners" className="text-btn -mr-3 -mt-3">Close</Link>}>
-          <ActionForm key={b?.id ?? "new"} action={saveBanner} className="grid gap-4 md:grid-cols-2">
+          <ActionForm key={b?.id ?? "new"} action={saveBanner} className="grid gap-4 @md:grid-cols-2">
             <input type="hidden" name="id" value={b?.id ?? ""} />
             <div><label className="label" htmlFor="pl">Placement</label><select id="pl" name="placement" className="field" defaultValue={b?.placement ?? "HERO"}>{PLACEMENTS.map((p) => <option key={p.v} value={p.v}>{p.label}</option>)}</select><p className="hint">{PLACEMENTS.map((p) => `${p.label}: ${p.hint}`).join(". ")}.</p></div>
             <div><label className="label" htmlFor="so">Order</label><input id="so" name="sortOrder" type="number" className="field" defaultValue={b?.sortOrder ?? 0} /><p className="hint">Lower numbers show first.</p></div>
@@ -59,7 +59,7 @@ export default async function Banners({ searchParams }: { searchParams: Promise<
             return (
               <section key={p.v}>
                 <h2 className="mb-2 text-[15px] font-semibold">{p.label}</h2>
-                <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                <ul className="grid gap-3 @md:grid-cols-2 @3xl:grid-cols-3">
                   {list.map((x) => {
                     const live = x.isActive && (!x.startsAt || x.startsAt <= now) && (!x.endsAt || x.endsAt > now);
                     return (

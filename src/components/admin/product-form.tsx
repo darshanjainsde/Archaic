@@ -129,7 +129,7 @@ function Form({ initial, categories, onDiscard }: FormProps & { onDiscard: () =>
   const err = (k: string) => errors[k] && <p className="error-text" role="alert">{errors[k]}</p>;
 
   return (
-    <form onSubmit={submit} noValidate className="grid gap-6 lg:grid-cols-[1fr_320px]">
+    <form onSubmit={submit} noValidate className="grid gap-6 @4xl:grid-cols-[minmax(0,1fr)_320px]">
       <div className="min-w-0 space-y-6">
         <Panel title="Details">
           <div className="space-y-4">
@@ -160,7 +160,7 @@ function Form({ initial, categories, onDiscard }: FormProps & { onDiscard: () =>
         </Panel>
 
         <Panel title="Pricing & inventory">
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 @md:grid-cols-2">
             <div>
               <label className="label" htmlFor="price">Price (₹)</label>
               <input id="price" inputMode="decimal" className="field" value={f.price} aria-invalid={!!errors.price} onChange={(e) => set("price", e.target.value)} placeholder="e.g. 1299" autoComplete="off" />
@@ -193,8 +193,8 @@ function Form({ initial, categories, onDiscard }: FormProps & { onDiscard: () =>
         <Panel id="pers-panel" title="Personalisation">
           <Toggle label="Let customers add their own text" hint="E.g. a name on the label or a message for the card." checked={pers.enabled} onChange={(v) => { setDirty(true); setPers((p) => ({ ...p, enabled: v })); }} />
           {pers.enabled && (
-            <div className="mt-3 grid gap-4 sm:grid-cols-3">
-              <div className="sm:col-span-3">
+            <div className="mt-3 grid gap-4 @xl:grid-cols-3">
+              <div className="@xl:col-span-3">
                 <label className="label" htmlFor="p-label">Field label</label>
                 <input id="p-label" className="field" value={pers.label} onChange={(e) => { setDirty(true); setPers((p) => ({ ...p, label: e.target.value })); }} />
               </div>
@@ -216,7 +216,7 @@ function Form({ initial, categories, onDiscard }: FormProps & { onDiscard: () =>
           <div className="space-y-2">
             {specs.map((s, i) => (
               <div key={s.key} className="flex items-start gap-2">
-                <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2">
+                <div className="grid min-w-0 flex-1 gap-2 @md:grid-cols-2">
                 <input aria-label={`Specification ${i + 1} name`} className="field" autoComplete="off" placeholder="e.g. Burn time" value={s.label} onChange={(e) => { setDirty(true); setSpecs(specs.map((x, k) => (k === i ? { ...x, label: e.target.value } : x))); }} />
                 <input aria-label={`Specification ${i + 1} value`} className="field" autoComplete="off" placeholder="e.g. 40 hours" value={s.value} onChange={(e) => { setDirty(true); setSpecs(specs.map((x, k) => (k === i ? { ...x, value: e.target.value } : x))); }} />
                 </div>
@@ -241,7 +241,7 @@ function Form({ initial, categories, onDiscard }: FormProps & { onDiscard: () =>
         </Panel>
       </div>
 
-      <div className="space-y-6 lg:sticky lg:top-20 lg:self-start">
+      <div className="space-y-6 @4xl:sticky @4xl:top-20 @4xl:self-start">
         <Panel title="Publish">
           <div className="space-y-3">
             <div>
@@ -287,7 +287,7 @@ function Form({ initial, categories, onDiscard }: FormProps & { onDiscard: () =>
           </div>
         </Panel>
       </div>
-      <div className="lg:col-span-2">
+      <div className="@4xl:col-span-2">
         <SaveBar dirty={dirty} pending={pending} submit onDiscard={onDiscard} saveLabel={initial.id ? "Save changes" : "Create product"} />
       </div>
     </form>

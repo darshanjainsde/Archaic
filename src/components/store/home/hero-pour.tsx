@@ -35,7 +35,7 @@ function splitHeading(h: string): [string, string | null] {
  * with the chosen product's card beneath it. On wide, tall screens the hero pins for the pour; everywhere else it sits in
  * normal flow and fills as it scrolls past. Reduced motion shows the jar full and lit.
  */
-export function HeroPour({ heading, text, ctaLabel, ctaHref, product, buyNow, pour, eyebrow }: { heading: string; text: string; ctaLabel: string; ctaHref: string; product: HeroProduct; buyNow: boolean; pour: boolean; eyebrow: string }) {
+export function HeroPour({ heading, text, ctaLabel, ctaHref, secondaryLabel, secondaryHref, proof, product, buyNow, pour, eyebrow }: { heading: string; text: string; ctaLabel: string; ctaHref: string; secondaryLabel: string; secondaryHref: string; proof: string; product: HeroProduct; buyNow: boolean; pour: boolean; eyebrow: string }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const heroRef = useRef<HTMLElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
@@ -229,8 +229,9 @@ export function HeroPour({ heading, text, ctaLabel, ctaHref, product, buyNow, po
             )}
             <div className="hero-ctas">
               {ctaLabel && ctaHref && <Link href={ctaHref} className="btn btn-primary">{ctaLabel}</Link>}
-              {ctaHref !== "/shop" && <Link href="/shop" className="btn btn-ghost">Browse everything</Link>}
+              {secondaryLabel && secondaryHref && <Link href={secondaryHref} className="btn btn-ghost">{secondaryLabel}</Link>}
             </div>
+            {proof && <p className="hero-proof">{proof}</p>}
           </div>
           <div className="hero-side">
             <div ref={boxRef} className="hero-jar"><canvas ref={canvasRef} aria-hidden /></div>
@@ -283,6 +284,7 @@ function HeroCard({ product: p, buyNow }: { product: HeroProduct; buyNow: boolea
       ) : (
         <Link href={href} className="btn hero-card-now">Choose options</Link>
       )}
+      {buyNow && p.inStock && direct && <p className="hero-card-note">Buy now skips the bag and opens checkout with this candle.</p>}
     </div>
   );
 }

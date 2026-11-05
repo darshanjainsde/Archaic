@@ -18,6 +18,7 @@ export const SECTION_TYPES: { type: HomeSectionType; label: string; help: string
   { type: "products", label: "Product shelf", help: "Featured, newest, bestsellers, on sale, or one category." },
   { type: "promo", label: "Promo banner", help: "Shows active Promo banners from Banners & ads." },
   { type: "story", label: "Story", help: "A short letter about the brand with a photo and a button (usually to Our story)." },
+  { type: "make", label: "Make it yours", help: "“A candle no one else has.”: the hero product's scents and wax colours as steps, a photo and a label preview." },
   { type: "occasions", label: "Gift occasions", help: "Photo tiles for the sub-categories of one category (Diwali, Wedding, Corporate…)." },
   { type: "membership", label: "Membership", help: "Shows your membership tiers and perks." },
   { type: "reviews", label: "Reviews", help: "Recent real customer reviews (hidden when there are none)." },
@@ -28,7 +29,8 @@ export const SECTION_TYPES: { type: HomeSectionType; label: string; help: string
 export function newSection(type: HomeSectionType): HomeSection {
   const id = `${type}-${uid().slice(0, 6)}`;
   switch (type) {
-    case "hero": return { id, type, enabled: true, heading: "Archaic Candles", text: "", ctaLabel: "Shop now", ctaHref: "/shop", image: null, productSlug: "", buyNow: true, pour: true };
+    case "hero": return { id, type, enabled: true, heading: "Archaic Candles", text: "", ctaLabel: "Shop now", ctaHref: "/shop", image: null, productSlug: "", buyNow: true, pour: true, secondaryLabel: "", secondaryHref: "", proof: "" };
+    case "make": return { id, type, enabled: true, heading: "A candle no one else has.", image: null, labelName: "For Aanya", labelLine: "light it on the bad days", ctaLabel: "Start with a jar", ctaHref: "" };
     case "occasions": return { id, type, enabled: true, heading: "Gifts for the occasion", text: "Boxed, wrapped and ready to give.", categorySlug: "gift-sets" };
     case "usp": return { id, type, enabled: true, items: [{ title: "Hand-poured", text: "Small batches" }] };
     case "categories": return { id, type, enabled: true, heading: "Shop by category", text: "" };
@@ -73,7 +75,7 @@ function Select({ label, value, onChange, children, hint }: { label: string; val
 }
 
 /** Two columns from 768 px, one below. Field-to-field gap 16. */
-const GRID = "grid gap-4 md:grid-cols-2";
+const GRID = "grid gap-4 @md:grid-cols-2";
 
 function Fields({ s, set, categories, products }: { s: HomeSection; set: (patch: Partial<HomeSection>) => void; categories: SectionCategory[]; products: PickableProduct[] }) {
   switch (s.type) {
@@ -81,22 +83,38 @@ function Fields({ s, set, categories, products }: { s: HomeSection; set: (patch:
       return (
         <div className="space-y-8">
           <div className={GRID}>
-            <div className="md:col-span-2"><Text label="Headline" value={s.heading} onChange={(v) => set({ heading: v })} placeholder="e.g. Choose your scent. We pour it." /></div>
-            <div className="md:col-span-2"><Text area label="Supporting text" value={s.text} onChange={(v) => set({ text: v })} hint="One or two short sentences under the headline." /></div>
+            <div className="@md:col-span-2"><Text label="Headline" value={s.heading} onChange={(v) => set({ heading: v })} placeholder="e.g. Choose your scent. We pour it." /></div>
+            <div className="@md:col-span-2"><Text area label="Supporting text" value={s.text} onChange={(v) => set({ text: v })} hint="One or two short sentences under the headline." /></div>
             <Text label="Button text" value={s.ctaLabel} onChange={(v) => set({ ctaLabel: v })} placeholder="e.g. Shop the candles" />
             <Text label="Button goes to" value={s.ctaHref} onChange={(v) => set({ ctaHref: v })} placeholder="/shop" hint="A page on your store, like /shop or /pages/about." />
+            <Text label="Second button text" value={s.secondaryLabel} onChange={(v) => set({ secondaryLabel: v })} placeholder="e.g. Gifts for Diwali" hint="Outlined, beside the main button. Leave empty for none." />
+            <Text label="Second button goes to" value={s.secondaryHref} onChange={(v) => set({ secondaryHref: v })} placeholder="/shop?category=diwali-gifts" />
+            <div className="@md:col-span-2"><Text label="Proof line" value={s.proof} onChange={(v) => set({ proof: v })} placeholder="e.g. 100% soy wax · Free shipping above ₹999" hint="One quiet line under the buttons. Keep it true." /></div>
           </div>
           <div className="space-y-4 border-t border-black/10 pt-6">
-            <ProductPicker label="Product on the hero jar" value={s.productSlug} onChange={(v) => set({ productSlug: v })} products={products} noneLabel="None — headline only" hint="Shows this product's photo, name and price beside the headline. Only active products are listed." />
-            <div className="grid gap-x-6 md:grid-cols-2">
+            <ProductPicker label="Product on the hero jar" value={s.productSlug} onChange={(v) => set({ productSlug: v })} products={products} noneLabel="Automatic — your featured (else newest) product" hint="Shows this product's name and price on the hero jar. Only active products are listed." />
+            <div className="grid gap-x-6 @md:grid-cols-2">
               <Toggle label="Show a Buy now button" hint="Adds the product to the bag and opens checkout in one tap." checked={s.buyNow} onChange={(v) => set({ buyNow: v })} />
               <Toggle label="Pour animation" hint="Wax pours into the jar as the visitor scrolls. Turn off for a still jar." checked={s.pour} onChange={(v) => set({ pour: v })} />
             </div>
-            {!s.productSlug && (s.buyNow || s.pour) && <p className="hint">Buy now and the pour animation need a product. Pick one above, or they are skipped.</p>}
           </div>
           <div className="border-t border-black/10 pt-6">
             <ImageField label="Hero photo (optional)" value={s.image} onChange={(v) => set({ image: v })} hint="Shown in the hero when no Hero banners are active. Wide photos work best, about 1600 × 1000 px." />
           </div>
+        </div>
+      );
+    case "make":
+      return (
+        <div className="space-y-4">
+          <div className={GRID}>
+            <div className="@md:col-span-2"><Text label="Heading" value={s.heading} onChange={(v) => set({ heading: v })} placeholder="e.g. A candle no one else has." /></div>
+            <Text label="Name on the sample label" value={s.labelName} onChange={(v) => set({ labelName: v })} placeholder="e.g. For Aanya" />
+            <Text label="Line on the sample label" value={s.labelLine} onChange={(v) => set({ labelLine: v })} placeholder="e.g. light it on the bad days" />
+            <Text label="Button text" value={s.ctaLabel} onChange={(v) => set({ ctaLabel: v })} placeholder="e.g. Start with a jar" />
+            <Text label="Button goes to" value={s.ctaHref} onChange={(v) => set({ ctaHref: v })} placeholder="the hero product" hint="Leave empty to open the hero product." />
+          </div>
+          <p className="hint">The steps list the hero product's own scents and wax colours, so they stay true when you change options.</p>
+          <ImageField label="Photo" value={s.image} onChange={(v) => set({ image: v })} aspect="1/1" hint="Square. Several jars in different colours work well. Leave empty for the default photo." />
         </div>
       );
     case "occasions": {
@@ -104,7 +122,7 @@ function Fields({ s, set, categories, products }: { s: HomeSection; set: (patch:
       const known = tops.some((c) => c.slug === s.categorySlug);
       return (
         <div className={GRID}>
-          <div className="md:col-span-2">
+          <div className="@md:col-span-2">
             <Select label="Category whose sub-categories become tiles" value={s.categorySlug} onChange={(v) => set({ categorySlug: v })} hint="Each sub-category shows as a photo tile. Add sub-categories and their photos in Categories.">
               {!known && <option value={s.categorySlug}>{s.categorySlug ? `“${s.categorySlug}” (not found)` : "Choose a category…"}</option>}
               {tops.map((c) => <option key={c.slug} value={c.slug}>{c.name}</option>)}
@@ -121,7 +139,7 @@ function Fields({ s, set, categories, products }: { s: HomeSection; set: (patch:
           {s.items.map((it, i) => (
             <fieldset key={i} className="rounded-lg border border-black/10 p-4">
               <legend className="px-1 text-[14px] font-semibold">Promise {i + 1}</legend>
-              <div className="grid gap-4 md:grid-cols-[1fr_1.5fr_auto] md:items-end">
+              <div className="grid gap-4 @2xl:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)_auto] @2xl:items-end">
                 <Text label="Title" value={it.title} onChange={(v) => set({ items: s.items.map((x, k) => (k === i ? { ...x, title: v } : x)) })} placeholder="e.g. Hand-poured" />
                 <Text label="Text" value={it.text} onChange={(v) => set({ items: s.items.map((x, k) => (k === i ? { ...x, text: v } : x)) })} placeholder="e.g. Small batches of forty" />
                 <button type="button" className="text-btn is-danger justify-self-start" onClick={() => set({ items: s.items.filter((_, k) => k !== i) })}><Trash2 size={18} aria-hidden />Remove</button>
@@ -166,7 +184,7 @@ function Fields({ s, set, categories, products }: { s: HomeSection; set: (patch:
         </div>
       );
     case "membership":
-      return <div className={GRID}><Text label="Heading" value={s.heading} onChange={(v) => set({ heading: v })} hint="Leave empty to use the programme name." /><Text label="Text under the heading" value={s.text} onChange={(v) => set({ text: v })} /><p className="hint md:col-span-2">Tiers and perks are set in Settings → Membership.</p></div>;
+      return <div className={GRID}><Text label="Heading" value={s.heading} onChange={(v) => set({ heading: v })} hint="Leave empty to use the programme name." /><Text label="Text under the heading" value={s.text} onChange={(v) => set({ text: v })} /><p className="hint @md:col-span-2">Tiers and perks are set in Settings → Membership.</p></div>;
     case "reviews":
       return <Text label="Heading" value={s.heading} onChange={(v) => set({ heading: v })} />;
     case "newsletter":
@@ -225,7 +243,7 @@ export function SectionsEditor({ sections, onChange, categories, products }: { s
       <div>
         <button type="button" className="btn btn-ghost btn-sm" aria-expanded={adding} onClick={() => setAdding((a) => !a)}><Plus size={18} aria-hidden />Add section</button>
         {adding && (
-          <ul className="mt-2 grid gap-2 rounded-lg border border-black/10 bg-surface p-2 sm:grid-cols-2">
+          <ul className="mt-2 grid gap-2 rounded-lg border border-black/10 bg-surface p-2 @md:grid-cols-2">
             {SECTION_TYPES.map((t) => (
               <li key={t.type}>
                 <button type="button" className="min-h-11 w-full rounded-md px-3 py-2 text-left hover:bg-black/5" onClick={() => { const n = newSection(t.type); onChange([...sections, n]); setOpen(n.id); setAdding(false); }}>
